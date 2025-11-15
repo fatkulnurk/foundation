@@ -5,8 +5,8 @@ import (
 )
 
 type Error struct {
-	Field   string
-	Message string
+	Field   string `json:"field" xml:"field" bson:"field"`
+	Message string `json:"message" xml:"message" bson:"message"`
 }
 
 type Errors []Error
