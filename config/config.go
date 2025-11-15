@@ -1,10 +1,10 @@
 package config
 
 import (
-	"foundation/shared"
-	"foundation/support"
 	"time"
 
+	"github.com/fatkulnurk/foundation/shared"
+	"github.com/fatkulnurk/foundation/support"
 	"github.com/joho/godotenv"
 )
 

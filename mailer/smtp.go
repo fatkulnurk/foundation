@@ -6,9 +6,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/fatkulnurk/gostarter/pkg/config"
-	"github.com/fatkulnurk/gostarter/pkg/logging"
-
+	"github.com/fatkulnurk/foundation/config"
+	"github.com/fatkulnurk/foundation/logging"
 	"github.com/wneessen/go-mail"
 )
 

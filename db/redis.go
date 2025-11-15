@@ -4,10 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/fatkulnurk/gostarter/pkg/config"
-
 	"time"
 
+	"github.com/fatkulnurk/foundation/config"
 	"github.com/redis/go-redis/v9"
 )
 

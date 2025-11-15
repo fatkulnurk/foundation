@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/fatkulnurk/gostarter/pkg/config"
+	"github.com/fatkulnurk/foundation/config"
 	_ "github.com/go-sql-driver/mysql"
 )
 

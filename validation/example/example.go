@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/fatkulnurk/gostarter/pkg/validation"
+	"github.com/fatkulnurk/foundation/validation"
 )
 
 type RegisterRequest struct {

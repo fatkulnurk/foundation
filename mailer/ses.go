@@ -9,8 +9,8 @@ import (
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sesv2"
 	"github.com/aws/aws-sdk-go-v2/service/sesv2/types"
-	"github.com/fatkulnurk/gostarter/pkg/config"
-	"github.com/fatkulnurk/gostarter/pkg/logging"
+	"github.com/fatkulnurk/foundation/config"
+	"github.com/fatkulnurk/foundation/logging"
 )
 
 func NewSESClient(cfg *config.SES) (*sesv2.Client, error) {

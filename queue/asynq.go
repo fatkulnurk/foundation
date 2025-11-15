@@ -5,9 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/fatkulnurk/gostarter/pkg/config"
-	"github.com/fatkulnurk/gostarter/pkg/logging"
-
+	"github.com/fatkulnurk/foundation/config"
+	"github.com/fatkulnurk/foundation/logging"
 	"github.com/hibiken/asynq"
 	"github.com/redis/go-redis/v9"
 )

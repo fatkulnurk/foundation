@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fatkulnurk/gostarter/pkg/config"
-	"github.com/fatkulnurk/gostarter/pkg/support"
+	"github.com/fatkulnurk/foundation/config"
+	"github.com/fatkulnurk/foundation/support"
 )
 
 type LocalStorage struct {
