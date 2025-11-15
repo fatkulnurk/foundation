@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fatkulnurk/foundation/logging"
+	"github.com/fatkulnurk/foundation/support"
 	appcfg "github.com/fatkulnurk/gostarter/pkg/config"
-	"github.com/fatkulnurk/gostarter/pkg/logging"
-	"github.com/fatkulnurk/gostarter/pkg/support"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
