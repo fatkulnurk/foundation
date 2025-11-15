@@ -1,4 +1,4 @@
-module foundation
+module github.com/fatkulnurk/foundation
 
 go 1.25.4
 
