@@ -9,14 +9,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fatkulnurk/foundation/logging"
-	"github.com/fatkulnurk/foundation/support"
-	appcfg "github.com/fatkulnurk/gostarter/pkg/config"
-
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	appcfg "github.com/fatkulnurk/foundation/config"
+	"github.com/fatkulnurk/foundation/logging"
+	"github.com/fatkulnurk/foundation/support"
 )
 
 func NewS3Client(cfg appcfg.S3) (*s3.Client, error) {
