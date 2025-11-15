@@ -1,10 +1,10 @@
 package config
 
 import (
+	"foundation/shared"
+	"foundation/support"
 	"time"
 
-	"github.com/fatkulnurk/gostarter/pkg/support"
-	"github.com/fatkulnurk/gostarter/shared/constant"
 	"github.com/joho/godotenv"
 )
 
@@ -12,13 +12,13 @@ func New(env string) *Config {
 	// default environment is development
 	envFile := ""
 	if env == "" {
-		env = constant.EnvironmentDevelopment
+		env = shared.EnvironmentDevelopment
 	}
 
 	switch env {
-	case constant.EnvironmentDevelopment:
+	case shared.EnvironmentDevelopment:
 		envFile = ".env"
-	case constant.EnvironmentTest:
+	case shared.EnvironmentTest:
 		envFile = ".env.test"
 	}
 
