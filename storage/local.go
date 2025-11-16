@@ -13,16 +13,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fatkulnurk/foundation/config"
 	"github.com/fatkulnurk/foundation/support"
 )
 
 type LocalStorage struct {
-	cfg config.LocalStorage
+	cfg LocalStorageConfig
 }
 
 // NewLocalStorage creates a new local storage instance
-func NewLocalStorage(cfg config.LocalStorage) (*LocalStorage, error) {
+func NewLocalStorage(cfg LocalStorageConfig) (*LocalStorage, error) {
 	// Ensure the base path exists
 	if err := os.MkdirAll(cfg.BasePath, cfg.DefaultDirPermission); err != nil {
 		return nil, fmt.Errorf("failed to create base directory: %w", err)

@@ -1,7 +1,6 @@
 package config
 
 import (
-	"os"
 	"time"
 
 	"github.com/fatkulnurk/foundation/mailer"
@@ -67,21 +66,4 @@ type Redis struct {
 
 type Schedule struct {
 	Timezone string
-}
-
-type S3 struct {
-	Region               string
-	Bucket               string
-	AccessKey            string
-	SecretKey            string
-	Session              string
-	Url                  string // url for generate url, if fill this field, it will be used to generate url for file, example https://minio.example.com for usePathStyleEndpoint = true, and https://bucket.minio.example.com for usePathStyleEndpoint = false
-	UseStylePathEndpoint bool   // if true, format will be s3.amazonaws.com/bucket, if false, format will be bucket.s3.amazonaws.com
-}
-
-type LocalStorage struct {
-	BasePath              string
-	BaseURL               string
-	DefaultDirPermission  os.FileMode // default 0755
-	DefaultFilePermission os.FileMode // default 0644
 }

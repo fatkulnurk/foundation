@@ -13,12 +13,11 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	appcfg "github.com/fatkulnurk/foundation/config"
 	"github.com/fatkulnurk/foundation/logging"
 	"github.com/fatkulnurk/foundation/support"
 )
 
-func NewS3Client(cfg appcfg.S3) (*s3.Client, error) {
+func NewS3Client(cfg S3Config) (*s3.Client, error) {
 	// Load konfigurasi AWS default dari environment, file config, dsb
 	awscfg, err := config.LoadDefaultConfig(context.TODO(),
 		config.WithRegion(cfg.Region),
@@ -36,10 +35,10 @@ func NewS3Client(cfg appcfg.S3) (*s3.Client, error) {
 type S3Storage struct {
 	client        *s3.Client
 	presignClient *s3.PresignClient
-	cfg           appcfg.S3
+	cfg           S3Config
 }
 
-func NewS3Storage(client *s3.Client, cfg appcfg.S3) Storage {
+func NewS3Storage(client *s3.Client, cfg S3Config) Storage {
 	presignClient := s3.NewPresignClient(client)
 
 	return &S3Storage{
