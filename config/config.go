@@ -3,6 +3,7 @@ package config
 import (
 	"time"
 
+	"github.com/fatkulnurk/foundation/mailer"
 	"github.com/fatkulnurk/foundation/queue"
 	"github.com/fatkulnurk/foundation/shared"
 	"github.com/fatkulnurk/foundation/support"
@@ -75,7 +76,7 @@ func New(env string) *Config {
 		Schedule: &Schedule{
 			Timezone: support.GetEnv("SCHEDULE_TIMEZONE", "UTC"),
 		},
-		SMTP: &SMTP{
+		SMTP: &mailer.ConfigSMTP{
 			Host:              support.GetEnv("SMTP_HOST", "smtp.gmail.com"),
 			Port:              support.GetIntEnv("SMTP_PORT", 587),
 			Username:          support.GetEnv("SMTP_USERNAME", ""),

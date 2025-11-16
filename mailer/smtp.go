@@ -6,12 +6,11 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/fatkulnurk/foundation/config"
 	"github.com/fatkulnurk/foundation/logging"
 	"github.com/wneessen/go-mail"
 )
 
-func NewSmtp(cfg *config.SMTP) (*mail.Client, error) {
+func NewSmtp(cfg *ConfigSMTP) (*mail.Client, error) {
 	// Deliver the mails via SMTP
 	client, err := mail.NewClient(cfg.Host,
 		mail.WithSMTPAuth(mail.SMTPAuthType(cfg.AuthType)),
