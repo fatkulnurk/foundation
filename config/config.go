@@ -76,14 +76,7 @@ func New(env string) *Config {
 		Schedule: &Schedule{
 			Timezone: support.GetEnv("SCHEDULE_TIMEZONE", "UTC"),
 		},
-		SMTP: &mailer.ConfigSMTP{
-			Host:              support.GetEnv("SMTP_HOST", "smtp.gmail.com"),
-			Port:              support.GetIntEnv("SMTP_PORT", 587),
-			Username:          support.GetEnv("SMTP_USERNAME", ""),
-			Password:          support.GetEnv("SMTP_PASSWORD", ""),
-			AuthType:          support.GetEnv("SMTP_AUTH_TYPE", "PLAIN"),
-			WithTLSPortPolicy: support.GetIntEnv("SMTP_WITH_TLS_PORT_POLICY", 0),
-		},
+		SMTP: mailer.NewConfigSMTP(),
 	}
 
 	return &cfg
