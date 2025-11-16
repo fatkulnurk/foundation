@@ -15,6 +15,10 @@ type App struct {
 	cfg *Config
 }
 
+func init() {
+	New()
+}
+
 func New() *App {
 	once.Do(func() {
 		cfg := LoadConfig()
@@ -23,8 +27,6 @@ func New() *App {
 		}
 	})
 
-	// Pastikan app sudah diinisialisasi sebelum dikembalikan
-	// once.Do() akan memblokir goroutine lain sampai inisialisasi selesai
 	return app
 }
 
