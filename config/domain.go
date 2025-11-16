@@ -16,7 +16,7 @@ type Config struct {
 	Redis         *Redis
 	Queue         *queue.Config
 	Schedule      *Schedule
-	SMTP          *mailer.ConfigSMTP
+	SMTP          *mailer.SMTPConfig
 }
 
 // App only this struct can deliver to module

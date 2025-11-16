@@ -12,7 +12,7 @@ import (
 	"github.com/fatkulnurk/foundation/logging"
 )
 
-func NewSESClient(cfg *ConfigSES) (*sesv2.Client, error) {
+func NewSESClient(cfg *SESConfig) (*sesv2.Client, error) {
 	awscfg, err := awsconfig.LoadDefaultConfig(context.TODO(), awsconfig.WithRegion("us-west-2"))
 	if err != nil {
 		logging.Error(context.Background(), fmt.Sprintf("unable to load SDK config, %v", err))

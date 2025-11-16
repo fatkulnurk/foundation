@@ -76,7 +76,7 @@ func New(env string) *Config {
 		Schedule: &Schedule{
 			Timezone: support.GetEnv("SCHEDULE_TIMEZONE", "UTC"),
 		},
-		SMTP: mailer.NewConfigSMTP(),
+		SMTP: mailer.LoadSMTPConfig(),
 	}
 
 	return &cfg

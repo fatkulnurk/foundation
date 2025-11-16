@@ -10,7 +10,7 @@ import (
 	"github.com/wneessen/go-mail"
 )
 
-func NewSmtp(cfg *ConfigSMTP) (*mail.Client, error) {
+func NewSmtp(cfg *SMTPConfig) (*mail.Client, error) {
 	// Deliver the mails via SMTP
 	client, err := mail.NewClient(cfg.Host,
 		mail.WithSMTPAuth(mail.SMTPAuthType(cfg.AuthType)),
