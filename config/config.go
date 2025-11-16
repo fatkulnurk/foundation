@@ -3,6 +3,7 @@ package config
 import (
 	"time"
 
+	"github.com/fatkulnurk/foundation/queue"
 	"github.com/fatkulnurk/foundation/shared"
 	"github.com/fatkulnurk/foundation/support"
 	"github.com/joho/godotenv"
@@ -68,7 +69,7 @@ func New(env string) *Config {
 			WriteTimeout:    support.GetDurationEnv("REDIS_WRITE_TIMEOUT", time.Second*3),
 			DialTimeout:     support.GetDurationEnv("REDIS_DIAL_TIMEOUT", time.Second*5),
 		},
-		Queue: &Queue{
+		Queue: &queue.Config{
 			Concurrency: support.GetIntEnv("QUEUE_WORKER_CONCURRENCY", 10),
 		},
 		Schedule: &Schedule{

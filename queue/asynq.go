@@ -5,13 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/fatkulnurk/foundation/config"
 	"github.com/fatkulnurk/foundation/logging"
 	"github.com/hibiken/asynq"
 	"github.com/redis/go-redis/v9"
 )
 
-func NewAsynqClient(cfg *config.Queue, redis *redis.Client) (*asynq.Client, error) {
+func NewAsynqClient(cfg *Config, redis *redis.Client) (*asynq.Client, error) {
 	client := asynq.NewClientFromRedisClient(redis)
 
 	err := client.Ping()

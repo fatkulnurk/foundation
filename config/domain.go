@@ -3,6 +3,8 @@ package config
 import (
 	"os"
 	"time"
+
+	"github.com/fatkulnurk/foundation/queue"
 )
 
 type Config struct {
@@ -11,7 +13,7 @@ type Config struct {
 	DeliveryHttp  *DeliveryHttp
 	DeliveryQueue *DeliveryQueue
 	Redis         *Redis
-	Queue         *Queue
+	Queue         *queue.Config
 	Schedule      *Schedule
 	SMTP          *SMTP
 }
@@ -60,10 +62,6 @@ type Redis struct {
 	ReadTimeout     time.Duration
 	WriteTimeout    time.Duration
 	DialTimeout     time.Duration
-}
-
-type Queue struct {
-	Concurrency int
 }
 
 type Schedule struct {
