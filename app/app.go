@@ -1,7 +1,14 @@
 package app
 
 import (
+	"sync"
+
 	"github.com/fatkulnurk/foundation/shared"
+)
+
+var (
+	app  *App
+	once sync.Once
 )
 
 type App struct {
@@ -9,36 +16,42 @@ type App struct {
 }
 
 func New() *App {
-	cfg := LoadConfig()
-	return &App{
-		cfg: cfg,
-	}
+	once.Do(func() {
+		cfg := LoadConfig()
+		app = &App{
+			cfg: cfg,
+		}
+	})
+
+	// Pastikan app sudah diinisialisasi sebelum dikembalikan
+	// once.Do() akan memblokir goroutine lain sampai inisialisasi selesai
+	return app
 }
 
-func (a *App) Name() string {
-	return a.cfg.name
+func Name() string {
+	return app.cfg.name
 }
 
-func (a *App) Version() string {
-	return a.cfg.version
+func Version() string {
+	return app.cfg.version
 }
 
-func (a *App) Env() string {
-	return a.cfg.env
+func Env() string {
+	return app.cfg.env
 }
 
-func (a *App) IsDevelopment() bool {
-	return a.cfg.env == shared.EnvironmentDevelopment
+func IsDevelopment() bool {
+	return app.cfg.env == shared.EnvironmentDevelopment
 }
 
-func (a *App) IsTesting() bool {
-	return a.cfg.env == shared.EnvironmentTest
+func IsTesting() bool {
+	return app.cfg.env == shared.EnvironmentTest
 }
 
-func (a *App) IsStaging() bool {
-	return a.cfg.env == shared.EnvironmentStaging
+func IsStaging() bool {
+	return app.cfg.env == shared.EnvironmentStaging
 }
 
-func (a *App) IsProduction() bool {
-	return a.cfg.env == shared.EnvironmentProduction
+func IsProduction() bool {
+	return app.cfg.env == shared.EnvironmentProduction
 }
