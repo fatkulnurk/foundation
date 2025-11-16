@@ -18,12 +18,14 @@ type item struct {
 }
 
 type LocalCache struct {
+	cfg   *Config
 	mu    sync.RWMutex
 	items map[string]item
 }
 
-func NewLocalCache() Cache {
+func NewLocalCache(cfg *Config) Cache {
 	return &LocalCache{
+		cfg:   cfg,
 		items: make(map[string]item),
 	}
 }
@@ -34,6 +36,8 @@ func (c *LocalCache) Set(ctx context.Context, key string, value any, ttlSeconds 
 	if err := ctx.Err(); err != nil {
 		return err
 	}
+
+	key = c.cfg.Prefix + key
 
 	stringValue, err := toString(value)
 	if err != nil {
@@ -61,6 +65,8 @@ func (c *LocalCache) Get(ctx context.Context, key string) (string, error) {
 		return "", err
 	}
 
+	key = c.cfg.Prefix + key
+
 	c.mu.RLock()
 	it, ok := c.items[key]
 	c.mu.RUnlock()
@@ -86,6 +92,8 @@ func (c *LocalCache) Delete(ctx context.Context, key string) error {
 		return err
 	}
 
+	key = c.cfg.Prefix + key
+
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -97,6 +105,8 @@ func (c *LocalCache) Has(ctx context.Context, key string) (bool, error) {
 	if err := ctx.Err(); err != nil {
 		return false, err
 	}
+
+	key = c.cfg.Prefix + key
 
 	c.mu.RLock()
 	it, ok := c.items[key]
