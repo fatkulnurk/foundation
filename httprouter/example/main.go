@@ -30,6 +30,12 @@ func main() {
 	// /static
 	r.Static("/static", "./public/static")
 
+	// rate limit
+	r.Use(middleware.NewRateLimitMiddleware(middleware.RateLimitConfig{
+		Requests: 10,
+		Window:   time.Minute,
+	}))
+
 	// route tanpa group
 	r.GET("/ping", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(w, "pong")
@@ -41,10 +47,6 @@ func main() {
 
 	// group /api
 	r.Group("/api", func(api httprouter.IRouter) {
-		api.Use(middleware.NewRateLimitMiddleware(middleware.RateLimitConfig{
-			Requests: 100,
-			Window:   time.Minute,
-		}))
 
 		// middleware khusus group
 		api.Use(middleware.RequireAPIKey)
