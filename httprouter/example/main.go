@@ -38,7 +38,7 @@ func main() {
 
 	// route tanpa group
 	r.GET("/ping", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, "pong")
+		httprouter.WriteHTML(w, http.StatusOK, "pong")
 	})
 
 	r.GET("/danger", func(w http.ResponseWriter, r *http.Request) {
