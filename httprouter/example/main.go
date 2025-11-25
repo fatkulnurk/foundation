@@ -40,7 +40,7 @@ func main() {
 	}, middleware.RecoverMiddleware)
 
 	// group /api
-	r.Group("/api", func(api httprouter.IGroup) {
+	r.Group("/api", func(api httprouter.IRouter) {
 		api.Use(middleware.NewRateLimitMiddleware(middleware.RateLimitConfig{
 			Requests: 100,
 			Window:   time.Minute,
@@ -59,7 +59,7 @@ func main() {
 		})
 
 		// GET /api/admin/stats (butuh X-API-Key + X-Role=admin)
-		api.Group("/admin", func(admin httprouter.IGroup) {
+		api.Group("/admin", func(admin httprouter.IRouter) {
 			admin.Use(func(next http.Handler) http.Handler {
 				return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					if r.Header.Get("X-Role") != "admin" {

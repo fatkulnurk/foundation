@@ -21,23 +21,7 @@ type IRouter interface {
 	PATCH(path string, h http.HandlerFunc, mws ...func(http.Handler) http.Handler)
 	DELETE(path string, h http.HandlerFunc, mws ...func(http.Handler) http.Handler)
 
-	Group(prefix string, fn func(g IGroup))
-	Static(prefix string, dir string, mws ...func(http.Handler) http.Handler)
-}
-
-type IGroup interface {
-	Use(mw func(http.Handler) http.Handler)
-
-	Handle(method, path string, h http.Handler, mws ...func(http.Handler) http.Handler)
-	HandleFunc(method, path string, h http.HandlerFunc, mws ...func(http.Handler) http.Handler)
-
-	GET(path string, h http.HandlerFunc, mws ...func(http.Handler) http.Handler)
-	POST(path string, h http.HandlerFunc, mws ...func(http.Handler) http.Handler)
-	PUT(path string, h http.HandlerFunc, mws ...func(http.Handler) http.Handler)
-	PATCH(path string, h http.HandlerFunc, mws ...func(http.Handler) http.Handler)
-	DELETE(path string, h http.HandlerFunc, mws ...func(http.Handler) http.Handler)
-
-	Group(prefix string, fn func(g IGroup))
+	Group(prefix string, fn func(g IRouter))
 	Static(prefix string, dir string, mws ...func(http.Handler) http.Handler)
 }
 
@@ -110,7 +94,7 @@ func (r *Router) DELETE(path string, h http.HandlerFunc, mws ...func(http.Handle
 }
 
 // Group: prefix + middleware khusus group
-func (r *Router) Group(prefix string, fn func(g IGroup)) {
+func (r *Router) Group(prefix string, fn func(g IRouter)) {
 	g := &Group{
 		router:      r,
 		prefix:      clean(prefix),
@@ -159,9 +143,20 @@ func (g *Group) Use(mw func(http.Handler) http.Handler) {
 	g.middlewares = append(g.middlewares, mw)
 }
 
-func (g *Group) Handle(method, path string, h http.Handler, mws ...func(http.Handler) http.Handler) {
-	fullPath := join(g.prefix, path)
-	pattern := method + " " + fullPath
+func (g *Group) Handle(pattern string, h http.Handler, mws ...func(http.Handler) http.Handler) {
+	// Parse pattern untuk extract method dan path
+	// Pattern bisa: "GET /users" atau "/users" (tanpa method)
+	var fullPattern string
+	if idx := strings.Index(pattern, " "); idx > 0 {
+		// Ada method: "GET /users"
+		method := pattern[:idx]
+		path := pattern[idx+1:]
+		fullPath := join(g.prefix, path)
+		fullPattern = method + " " + fullPath
+	} else {
+		// Tanpa method: "/users" atau "/static/{path...}"
+		fullPattern = join(g.prefix, pattern)
+	}
 
 	// global router → group → route
 	all := append([]func(http.Handler) http.Handler{}, g.router.middlewares...)
@@ -169,34 +164,38 @@ func (g *Group) Handle(method, path string, h http.Handler, mws ...func(http.Han
 	all = append(all, mws...)
 
 	final := chain(h, all)
-	g.router.mux.Handle(pattern, final)
+	g.router.mux.Handle(fullPattern, final)
 }
 
-func (g *Group) HandleFunc(method, path string, h http.HandlerFunc, mws ...func(http.Handler) http.Handler) {
-	g.Handle(method, path, h, mws...)
+func (g *Group) HandleFunc(pattern string, h http.HandlerFunc, mws ...func(http.Handler) http.Handler) {
+	g.Handle(pattern, h, mws...)
 }
 
 func (g *Group) GET(path string, h http.HandlerFunc, mws ...func(http.Handler) http.Handler) {
-	g.Handle(http.MethodGet, path, h, mws...)
+	g.Handle("GET "+clean(path), h, mws...)
 }
 
 func (g *Group) POST(path string, h http.HandlerFunc, mws ...func(http.Handler) http.Handler) {
-	g.Handle(http.MethodPost, path, h, mws...)
+	g.Handle("POST "+clean(path), h, mws...)
 }
 
 func (g *Group) PUT(path string, h http.HandlerFunc, mws ...func(http.Handler) http.Handler) {
-	g.Handle(http.MethodPut, path, h, mws...)
+	g.Handle("PUT "+clean(path), h, mws...)
 }
 
 func (g *Group) PATCH(path string, h http.HandlerFunc, mws ...func(http.Handler) http.Handler) {
-	g.Handle(http.MethodPatch, path, h, mws...)
+	g.Handle("PATCH "+clean(path), h, mws...)
 }
 
 func (g *Group) DELETE(path string, h http.HandlerFunc, mws ...func(http.Handler) http.Handler) {
-	g.Handle(http.MethodDelete, path, h, mws...)
+	g.Handle("DELETE "+clean(path), h, mws...)
 }
 
-func (g *Group) Group(prefix string, fn func(g IGroup)) {
+func (g *Group) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	g.router.ServeHTTP(w, req)
+}
+
+func (g *Group) Group(prefix string, fn func(g IRouter)) {
 	newGroup := &Group{
 		router: g.router,
 		prefix: join(g.prefix, prefix),
