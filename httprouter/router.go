@@ -7,7 +7,7 @@ import (
 
 // =============== INTERFACE ===============
 
-type IRouter interface {
+type HttpRouter interface {
 	http.Handler
 
 	Use(mw func(http.Handler) http.Handler)
@@ -21,7 +21,7 @@ type IRouter interface {
 	PATCH(path string, h http.HandlerFunc, mws ...func(http.Handler) http.Handler)
 	DELETE(path string, h http.HandlerFunc, mws ...func(http.Handler) http.Handler)
 
-	Group(prefix string, fn func(g IRouter))
+	Group(prefix string, fn func(g HttpRouter))
 	Static(prefix string, dir string, mws ...func(http.Handler) http.Handler)
 }
 
@@ -94,7 +94,7 @@ func (r *Router) DELETE(path string, h http.HandlerFunc, mws ...func(http.Handle
 }
 
 // Group: prefix + middleware khusus group
-func (r *Router) Group(prefix string, fn func(g IRouter)) {
+func (r *Router) Group(prefix string, fn func(g HttpRouter)) {
 	g := &Group{
 		router:      r,
 		prefix:      clean(prefix),
@@ -195,7 +195,7 @@ func (g *Group) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	g.router.ServeHTTP(w, req)
 }
 
-func (g *Group) Group(prefix string, fn func(g IRouter)) {
+func (g *Group) Group(prefix string, fn func(g HttpRouter)) {
 	newGroup := &Group{
 		router: g.router,
 		prefix: join(g.prefix, prefix),

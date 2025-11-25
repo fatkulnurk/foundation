@@ -46,7 +46,7 @@ func main() {
 	}, middleware.RecoverMiddleware)
 
 	// group /api
-	r.Group("/api", func(api httprouter.IRouter) {
+	r.Group("/api", func(api httprouter.HttpRouter) {
 
 		// middleware khusus group
 		api.Use(middleware.RequireAPIKey)
@@ -61,7 +61,7 @@ func main() {
 		})
 
 		// GET /api/admin/stats (butuh X-API-Key + X-Role=admin)
-		api.Group("/admin", func(admin httprouter.IRouter) {
+		api.Group("/admin", func(admin httprouter.HttpRouter) {
 			admin.Use(func(next http.Handler) http.Handler {
 				return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					if r.Header.Get("X-Role") != "admin" {
