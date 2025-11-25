@@ -1,0 +1,38 @@
+{{ define "price" }}
+<h2 style="color: #2d3748; margin-bottom: 1.5rem;">{{ .Title }}</h2>
+
+<div class="card">
+    <h3 style="color: #4a5568; margin-bottom: 1rem;">📊 Harga Emas Hari Ini</h3>
+    <p style="color: #718096; margin-bottom: 1.5rem;">Update terakhir: {{ formatDate now "02 Jan 2006 15:04" }}</p>
+    
+    {{ template "price-table" . }}
+    
+    <div style="margin-top: 1.5rem; padding: 1rem; background: #fffbeb; border-radius: 6px; border-left: 4px solid #f59e0b;">
+        <p style="margin: 0; color: #92400e;">
+            <strong>💡 Info:</strong> Harga dapat berubah sewaktu-waktu mengikuti harga pasar internasional.
+        </p>
+    </div>
+</div>
+
+<div class="card">
+    <h3 style="color: #4a5568; margin-bottom: 1rem;">📈 Statistik</h3>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+        <div style="padding: 1rem; background: #f7fafc; border-radius: 6px;">
+            <p style="color: #718096; font-size: 0.875rem;">Harga Tertinggi</p>
+            <p style="color: #2d3748; font-size: 1.5rem; font-weight: 700; margin-top: 0.5rem;">{{ .HighestPrice }}</p>
+        </div>
+        <div style="padding: 1rem; background: #f7fafc; border-radius: 6px;">
+            <p style="color: #718096; font-size: 0.875rem;">Harga Terendah</p>
+            <p style="color: #2d3748; font-size: 1.5rem; font-weight: 700; margin-top: 0.5rem;">{{ .LowestPrice }}</p>
+        </div>
+        <div style="padding: 1rem; background: #f7fafc; border-radius: 6px;">
+            <p style="color: #718096; font-size: 0.875rem;">Rata-rata</p>
+            <p style="color: #2d3748; font-size: 1.5rem; font-weight: 700; margin-top: 0.5rem;">{{ .AveragePrice }}</p>
+        </div>
+    </div>
+</div>
+{{ end }}
+
+{{ define "content" }}
+{{ template "price" . }}
+{{ end }}

@@ -6,12 +6,14 @@ Package view menyediakan template rendering yang powerful, fleksibel, dan produc
 
 - ✅ **Template Caching** - Automatic caching untuk production performance
 - ✅ **Flexible Structure** - Support layouts, components, dan nested views
+- ✅ **Separate Paths** - Template bisa tersebar di berbagai lokasi
+- ✅ **Custom Path Resolver** - Full control atas path resolution
 - ✅ **Custom Functions** - Built-in functions + custom function support
 - ✅ **Global Data** - Shared data across all templates
 - ✅ **Thread-Safe** - Concurrent rendering dengan sync.RWMutex
 - ✅ **Hot Reload** - Disable cache untuk development
 - ✅ **Custom Delimiters** - Support custom template delimiters
-- ✅ **Path Resolution** - Smart path resolution untuk nested templates
+- ✅ **Module-Based** - Perfect untuk modular application structure
 
 ## Installation
 
@@ -25,13 +27,16 @@ import "github.com/fatkulnurk/foundation/view"
 
 ```go
 v := view.New(view.Config{
-    TemplateDir: "./templates",
-    EnableCache: false, // false untuk development
+    LayoutsPath:    "./view/layouts",
+    ComponentsPath: "./view/component",
+    ViewsPath:      "./module",
+    EnableCache:    false,
 })
 
-html, err := v.Render(context.Background(), "home", map[string]any{
-    "Title": "Welcome",
-    "Message": "Hello, World!",
+// Render: ./module/gold/view/price.html
+html, err := v.Render(context.Background(), "gold/view/price", map[string]any{
+    "Title": "Gold Price",
+    "Price": 1000000,
 })
 ```
 
@@ -40,8 +45,8 @@ html, err := v.Render(context.Background(), "home", map[string]any{
 ```go
 html, err := v.RenderWithLayout(
     context.Background(),
-    "main",           // layout name
-    "gold/price",     // view name (support nested path)
+    "app",              // layout: ./view/layouts/app.html
+    "gold/view/price",  // view: ./module/gold/view/price.html
     data,
 )
 ```
@@ -49,37 +54,38 @@ html, err := v.RenderWithLayout(
 ## Directory Structure
 
 ```
-templates/
-├── layouts/
-│   ├── main.html
-│   └── admin.html
-├── components/
-│   ├── header.html
-│   ├── footer.html
-│   └── table.html
-└── views/
-    ├── home.html
-    ├── about.html
-    └── gold/
-        ├── price.html
-        └── chart.html
+project/
+├── view/
+│   ├── layouts/
+│   │   ├── app.html
+│   │   └── admin.html
+│   └── component/
+│       ├── header.html
+│       ├── footer.html
+│       └── table.html
+└── module/
+    ├── gold/
+    │   └── view/
+    │       ├── price.html
+    │       └── chart.html
+    └── user/
+        └── view/
+            ├── profile.html
+            └── settings.html
 ```
 
 ## Configuration
 
 ```go
 type Config struct {
-    // Root directory untuk semua template
-    TemplateDir string
+    // Full path ke directory layouts (e.g., "./view/layouts")
+    LayoutsPath string
 
-    // Subdirectory untuk layouts (default: "layouts")
-    LayoutsDir string
+    // Full path ke directory components (e.g., "./view/component")
+    ComponentsPath string
 
-    // Subdirectory untuk components (default: "components")
-    ComponentsDir string
-
-    // Subdirectory untuk views (default: "views")
-    ViewsDir string
+    // Full path ke directory views (e.g., "./module")
+    ViewsPath string
 
     // File extension (default: ".html")
     Extension string
@@ -96,6 +102,9 @@ type Config struct {
 
     // Global data tersedia di semua template
     GlobalData map[string]any
+
+    // Custom path resolver function
+    PathResolver func(templateType, name string) string
 }
 ```
 
@@ -130,11 +139,60 @@ type Config struct {
 
 ## Examples
 
-### 1. Global Data
+### 1. Separate Paths Configuration
 
 ```go
 v := view.New(view.Config{
-    TemplateDir: "./templates",
+    LayoutsPath:    "./view/layouts",
+    ComponentsPath: "./view/component",
+    ViewsPath:      "./module",
+    EnableCache:    true,
+})
+
+// Layout: ./view/layouts/app.html
+// Components: ./view/component/*.html
+// View: ./module/gold/view/price.html
+html, err := v.RenderWithLayout(ctx, "app", "gold/view/price", data)
+```
+
+### 2. Custom Path Resolver
+
+```go
+v := view.New(view.Config{
+    EnableCache: false,
+    PathResolver: func(templateType, name string) string {
+        switch templateType {
+        case "layout":
+            return filepath.Join("./view/layouts", name+".html")
+        case "component":
+            return filepath.Join("./view/component", name+".html")
+        case "view":
+            // Custom logic: modulename/viewname -> ./module/modulename/view/viewname.html
+            parts := strings.Split(name, "/")
+            if len(parts) >= 2 {
+                moduleName := parts[0]
+                viewName := strings.Join(parts[1:], "/")
+                return filepath.Join("./module", moduleName, "view", viewName+".html")
+            }
+            return filepath.Join("./views", name+".html")
+        default:
+            return name + ".html"
+        }
+    },
+})
+
+// Dengan custom resolver, "gold/price" akan resolve ke:
+// ./module/gold/view/price.html
+html, err := v.Render(ctx, "gold/price", data)
+```
+
+### 3. Global Data
+
+```go
+v := view.New(view.Config{
+    LayoutsPath:    "./view/layouts",
+    ComponentsPath: "./view/component",
+    ViewsPath:      "./module",
     GlobalData: map[string]any{
         "SiteName": "My Site",
         "Version": "1.0.0",

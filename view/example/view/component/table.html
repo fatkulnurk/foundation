@@ -1,0 +1,20 @@
+{{ define "price-table" }}
+<table style="width: 100%; border-collapse: collapse; margin-top: 1rem;">
+    <thead>
+        <tr style="background: #f7fafc; border-bottom: 2px solid #e2e8f0;">
+            <th style="padding: 1rem; text-align: left;">Berat</th>
+            <th style="padding: 1rem; text-align: right;">Harga Beli</th>
+            <th style="padding: 1rem; text-align: right;">Harga Jual</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{ range .Prices }}
+        <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 1rem;">{{ .Weight }}</td>
+            <td style="padding: 1rem; text-align: right; color: #48bb78; font-weight: 600;">{{ .BuyPrice }}</td>
+            <td style="padding: 1rem; text-align: right; color: #f56565; font-weight: 600;">{{ .SellPrice }}</td>
+        </tr>
+        {{ end }}
+    </tbody>
+</table>
+{{ end }}

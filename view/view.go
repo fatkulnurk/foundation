@@ -23,17 +23,14 @@ type View interface {
 
 // Config untuk konfigurasi view
 type Config struct {
-	// TemplateDir adalah root directory untuk semua template
-	TemplateDir string
+	// LayoutsPath adalah full path ke directory layouts (e.g., "./view/layouts")
+	LayoutsPath string
 
-	// LayoutsDir adalah subdirectory untuk layouts (default: "layouts")
-	LayoutsDir string
+	// ComponentsPath adalah full path ke directory components (e.g., "./view/component")
+	ComponentsPath string
 
-	// ComponentsDir adalah subdirectory untuk components (default: "components")
-	ComponentsDir string
-
-	// ViewsDir adalah subdirectory untuk views (default: "views")
-	ViewsDir string
+	// ViewsPath adalah full path ke directory views (e.g., "./module")
+	ViewsPath string
 
 	// Extension adalah file extension untuk template (default: ".html")
 	Extension string
@@ -50,6 +47,12 @@ type Config struct {
 
 	// GlobalData untuk data yang tersedia di semua template
 	GlobalData map[string]any
+
+	// PathResolver adalah custom function untuk resolve path template
+	// Jika nil, akan menggunakan default resolver
+	// Signature: func(templateType, name string) string
+	// templateType: "layout", "component", "view"
+	PathResolver func(templateType, name string) string
 }
 
 type view struct {
@@ -63,15 +66,6 @@ type view struct {
 // New membuat instance View baru
 func New(config Config) View {
 	// Set defaults
-	if config.LayoutsDir == "" {
-		config.LayoutsDir = "layouts"
-	}
-	if config.ComponentsDir == "" {
-		config.ComponentsDir = "components"
-	}
-	if config.ViewsDir == "" {
-		config.ViewsDir = "views"
-	}
 	if config.Extension == "" {
 		config.Extension = ".html"
 	}
@@ -267,17 +261,19 @@ func (v *view) parseTemplate(layout, name string) (*template.Template, error) {
 
 	// 1. Add layout if specified
 	if layout != "" {
-		layoutPath := v.resolvePath(v.config.LayoutsDir, layout)
+		layoutPath := v.resolvePath("layout", layout)
 		files = append(files, layoutPath)
 	}
 
 	// 2. Add all components (optional, bisa di-skip jika tidak ada)
-	componentsPattern := filepath.Join(v.config.TemplateDir, v.config.ComponentsDir, "*"+v.config.Extension)
-	componentFiles, _ := filepath.Glob(componentsPattern)
-	files = append(files, componentFiles...)
+	if v.config.ComponentsPath != "" {
+		componentsPattern := filepath.Join(v.config.ComponentsPath, "*"+v.config.Extension)
+		componentFiles, _ := filepath.Glob(componentsPattern)
+		files = append(files, componentFiles...)
+	}
 
 	// 3. Add the main view
-	viewPath := v.resolvePath(v.config.ViewsDir, name)
+	viewPath := v.resolvePath("view", name)
 	files = append(files, viewPath)
 
 	// Parse all files
@@ -294,19 +290,38 @@ func (v *view) parseTemplate(layout, name string) (*template.Template, error) {
 }
 
 // resolvePath me-resolve path template
-func (v *view) resolvePath(dir, name string) string {
-	// Jika name sudah include extension, gunakan langsung
-	if strings.HasSuffix(name, v.config.Extension) {
-		return filepath.Join(v.config.TemplateDir, dir, name)
+// templateType: "layout", "component", "view"
+func (v *view) resolvePath(templateType, name string) string {
+	// Gunakan custom PathResolver jika ada
+	if v.config.PathResolver != nil {
+		return v.config.PathResolver(templateType, name)
 	}
 
-	// Jika name mengandung subdirectory (e.g., "gold/price")
+	// Default resolver
+	var basePath string
+	switch templateType {
+	case "layout":
+		basePath = v.config.LayoutsPath
+	case "component":
+		basePath = v.config.ComponentsPath
+	case "view":
+		basePath = v.config.ViewsPath
+	default:
+		basePath = v.config.ViewsPath
+	}
+
+	// Jika name sudah include extension, gunakan langsung
+	if strings.HasSuffix(name, v.config.Extension) {
+		return filepath.Join(basePath, name)
+	}
+
+	// Jika name mengandung subdirectory (e.g., "gold/price" atau "modulename/view/price")
 	if strings.Contains(name, "/") {
-		return filepath.Join(v.config.TemplateDir, dir, name+v.config.Extension)
+		return filepath.Join(basePath, name+v.config.Extension)
 	}
 
 	// Default: name + extension
-	return filepath.Join(v.config.TemplateDir, dir, name+v.config.Extension)
+	return filepath.Join(basePath, name+v.config.Extension)
 }
 
 // executeTemplate mengeksekusi template
@@ -343,15 +358,36 @@ func (v *view) getCacheKey(layout, name string) string {
 
 // WalkTemplates walks through all template files (useful for preloading)
 func (v *view) WalkTemplates(callback func(path string) error) error {
-	return filepath.WalkDir(v.config.TemplateDir, func(path string, d fs.DirEntry, err error) error {
+	// Walk through all configured paths
+	paths := []string{}
+
+	if v.config.LayoutsPath != "" {
+		paths = append(paths, v.config.LayoutsPath)
+	}
+	if v.config.ComponentsPath != "" {
+		paths = append(paths, v.config.ComponentsPath)
+	}
+	if v.config.ViewsPath != "" {
+		paths = append(paths, v.config.ViewsPath)
+	}
+
+	for _, basePath := range paths {
+		err := filepath.WalkDir(basePath, func(path string, d fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+
+			if !d.IsDir() && strings.HasSuffix(path, v.config.Extension) {
+				return callback(path)
+			}
+
+			return nil
+		})
+
 		if err != nil {
 			return err
 		}
+	}
 
-		if !d.IsDir() && strings.HasSuffix(path, v.config.Extension) {
-			return callback(path)
-		}
-
-		return nil
-	})
+	return nil
 }

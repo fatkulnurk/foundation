@@ -1,0 +1,6 @@
+{{ define "alert" }}
+<div style="padding: 1rem; border-radius: 6px; margin-bottom: 1rem; background: {{ default "#e3f2fd" .BgColor }}; border-left: 4px solid {{ default "#2196f3" .BorderColor }};">
+    <strong style="display: block; margin-bottom: 0.5rem;">{{ default "Info" .Title }}</strong>
+    <p style="margin: 0;">{{ .Message }}</p>
+</div>
+{{ end }}
