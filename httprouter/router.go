@@ -144,8 +144,9 @@ func (r *Router) Static(prefix string, dir string, mws ...func(http.Handler) htt
 	all := append(append([]func(http.Handler) http.Handler{}, r.middlewares...), mws...)
 	final := chain(staticHandler, all)
 
-	// Pattern TANPA method → "/static/" style
-	r.mux.Handle(prefix, final)
+	// Pattern dengan wildcard untuk match semua file: "/static/{path...}"
+	pattern := prefix + "{path...}"
+	r.mux.Handle(pattern, final)
 }
 
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
@@ -232,7 +233,10 @@ func (g *Group) Static(prefix string, dir string, mws ...func(http.Handler) http
 	all = append(all, mws...)
 
 	final := chain(staticHandler, all)
-	g.router.mux.Handle(fullPrefix, final)
+
+	// Pattern dengan wildcard untuk match semua file
+	pattern := fullPrefix + "{path...}"
+	g.router.mux.Handle(pattern, final)
 }
 
 // =============== UTIL PATH ===============

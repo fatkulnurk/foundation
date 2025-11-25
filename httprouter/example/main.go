@@ -41,9 +41,6 @@ func main() {
 
 	// group /api
 	r.Group("/api", func(api httprouter.IGroup) {
-		// serve /api/assets/*
-		r.Static("/assets", "./public/app-assets")
-
 		api.Use(middleware.NewRateLimitMiddleware(middleware.RateLimitConfig{
 			Requests: 100,
 			Window:   time.Minute,
@@ -51,6 +48,9 @@ func main() {
 
 		// middleware khusus group
 		api.Use(middleware.RequireAPIKey)
+
+		// serve /api/assets/* (dengan middleware di atas)
+		api.Static("/assets", "./public/app-assets")
 
 		// GET /api/users/{id}
 		api.GET("/users/{id}", func(w http.ResponseWriter, r *http.Request) {
@@ -76,6 +76,6 @@ func main() {
 		})
 	})
 
-	log.Println("listen :8080")
-	log.Fatal(http.ListenAndServe(":8080", r))
+	log.Println("listen :18080")
+	log.Fatal(http.ListenAndServe(":18080", r))
 }
