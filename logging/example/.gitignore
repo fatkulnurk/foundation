@@ -1,0 +1,6 @@
+# Binary
+logging-example
+
+# Logs directory
+logs/
+*.log
