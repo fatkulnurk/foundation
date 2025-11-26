@@ -135,6 +135,23 @@ func runProducer(redisClient *redis.Client) {
 		fmt.Printf("✓ Task enqueued: ID=%s (deadline: %s)\n\n", result.TaskID, deadline.Format("15:04:05"))
 	}
 
+	// Example 6: Get task info
+	fmt.Println("6. Getting task info...")
+	if result != nil {
+		taskInfo, err := q.GetTaskInfo(ctx, result.TaskID)
+		if err != nil {
+			log.Printf("Error getting task info: %v\n", err)
+		} else {
+			fmt.Printf("✓ Task Info Retrieved:\n")
+			fmt.Printf("  - ID: %s\n", taskInfo.ID)
+			fmt.Printf("  - Type: %s\n", taskInfo.Type)
+			fmt.Printf("  - State: %s\n", taskInfo.State)
+			fmt.Printf("  - Queue: %s\n", taskInfo.Queue)
+			fmt.Printf("  - Max Retry: %d\n", taskInfo.MaxRetry)
+			fmt.Printf("  - Retried: %d\n\n", taskInfo.Retried)
+		}
+	}
+
 	fmt.Println("✅ All tasks enqueued successfully!")
 	fmt.Println("\nRun 'go run main.go worker' to start the worker and process these tasks.")
 }
@@ -156,14 +173,20 @@ func runWorker(redisClient *redis.Client) {
 	}
 
 	// Create worker instance
-	worker := queue.NewWorker(cfg, redisClient)
+	w := queue.NewWorker(cfg, redisClient)
 
 	// Register handlers
 	fmt.Println("Registering task handlers...")
 
 	// Handler for email:send with middleware
-	worker.RegisterWithMiddleware("email:send",
+	w.RegisterWithMiddleware("email:send",
 		func(ctx context.Context, payload []byte) error {
+			// Get task ID from context using worker
+			taskID, ok := w.GetTaskIDFromContext(ctx)
+			if ok {
+				fmt.Printf("📋 Processing task ID: %s\n", taskID)
+			}
+
 			var email EmailPayload
 			if err := json.Unmarshal(payload, &email); err != nil {
 				return fmt.Errorf("failed to unmarshal email payload: %w", err)
@@ -179,7 +202,12 @@ func runWorker(redisClient *redis.Client) {
 	)
 
 	// Handler for notification:send
-	worker.Register("notification:send", func(ctx context.Context, payload []byte) error {
+	w.Register("notification:send", func(ctx context.Context, payload []byte) error {
+		// Get task ID from context
+		if taskID, ok := w.GetTaskIDFromContext(ctx); ok {
+			fmt.Printf("📋 Task ID: %s\n", taskID)
+		}
+
 		var notif NotificationPayload
 		if err := json.Unmarshal(payload, &notif); err != nil {
 			return fmt.Errorf("failed to unmarshal notification payload: %w", err)
@@ -192,7 +220,7 @@ func runWorker(redisClient *redis.Client) {
 	})
 
 	// Handler for report:generate
-	worker.Register("report:generate", func(ctx context.Context, payload []byte) error {
+	w.Register("report:generate", func(ctx context.Context, payload []byte) error {
 		var data map[string]any
 		if err := json.Unmarshal(payload, &data); err != nil {
 			return fmt.Errorf("failed to unmarshal report payload: %w", err)
@@ -205,7 +233,7 @@ func runWorker(redisClient *redis.Client) {
 	})
 
 	// Handler for backup:database
-	worker.Register("backup:database", func(ctx context.Context, payload []byte) error {
+	w.Register("backup:database", func(ctx context.Context, payload []byte) error {
 		var data map[string]any
 		if err := json.Unmarshal(payload, &data); err != nil {
 			return fmt.Errorf("failed to unmarshal backup payload: %w", err)
@@ -227,7 +255,7 @@ func runWorker(redisClient *redis.Client) {
 	go func() {
 		fmt.Println("🚀 Starting worker...")
 		fmt.Println("Press Ctrl+C to stop\n")
-		if err := worker.Start(); err != nil {
+		if err := w.Start(); err != nil {
 			log.Fatalf("Worker error: %v", err)
 		}
 	}()
@@ -235,6 +263,6 @@ func runWorker(redisClient *redis.Client) {
 	// Wait for shutdown signal
 	<-sigChan
 	fmt.Println("\n\n⏳ Shutting down gracefully...")
-	worker.Stop()
+	w.Stop()
 	fmt.Println("✅ Worker stopped")
 }

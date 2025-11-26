@@ -74,7 +74,30 @@ worker.Start()
 
 ```go
 type Queue interface {
+    // Enqueue adds a task to the queue
     Enqueue(ctx context.Context, taskName string, payload any, opts ...Option) (*OutputEnqueue, error)
+    
+    // GetTaskInfo retrieves information about a task by its ID
+    GetTaskInfo(ctx context.Context, taskID string) (*TaskInfo, error)
+    
+    // Close closes the queue client connection
+    Close() error
+}
+```
+
+**TaskInfo** contains detailed information about a task:
+```go
+type TaskInfo struct {
+    ID            string
+    Type          string
+    Payload       []byte
+    State         TaskState    // pending, active, scheduled, retry, archived, completed
+    Queue         string
+    MaxRetry      int
+    Retried       int
+    LastError     string
+    CompletedAt   *time.Time
+    NextProcessAt *time.Time
 }
 ```
 
@@ -101,6 +124,37 @@ type MiddlewareFunc func(Handler) Handler
 ```
 
 Middleware allows you to wrap handlers with additional functionality like logging, metrics, recovery, etc.
+
+## Worker Methods
+
+### GetTaskIDFromContext
+
+Retrieves the task ID from the context inside a handler function. This is a method of the Worker interface.
+
+```go
+func (w Worker) GetTaskIDFromContext(ctx context.Context) (string, bool)
+```
+
+**Usage:**
+```go
+w := queue.NewWorker(cfg, redisClient)
+
+w.Register("email:send", func(ctx context.Context, payload []byte) error {
+    // Get task ID from context using worker instance
+    taskID, ok := w.GetTaskIDFromContext(ctx)
+    if ok {
+        log.Printf("Processing task: %s", taskID)
+    }
+    
+    // Process task...
+    return nil
+})
+```
+
+**Why it's a Worker method:**
+- Provides clean API - all worker-related functions are in one interface
+- Allows different implementations for different queue backends
+- Maintains abstraction - external code doesn't need to know about asynq
 
 ## Configuration
 
@@ -311,6 +365,28 @@ worker.RegisterWithMiddleware("email:send",
     queue.RecoveryMiddleware("email:send"),
     queue.TimeoutMiddleware(30*time.Second),
 )
+```
+
+### Example 7: Get Task Info
+
+```go
+// Enqueue task
+result, _ := q.Enqueue(ctx, "email:send", emailPayload)
+
+// Get task information
+taskInfo, err := q.GetTaskInfo(ctx, result.TaskID)
+if err != nil {
+    log.Fatal(err)
+}
+
+fmt.Printf("Task ID: %s\n", taskInfo.ID)
+fmt.Printf("State: %s\n", taskInfo.State)
+fmt.Printf("Queue: %s\n", taskInfo.Queue)
+fmt.Printf("Retried: %d/%d\n", taskInfo.Retried, taskInfo.MaxRetry)
+
+if taskInfo.NextProcessAt != nil {
+    fmt.Printf("Next process at: %s\n", taskInfo.NextProcessAt)
+}
 ```
 
 ## Running the Example

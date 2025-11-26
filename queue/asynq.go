@@ -13,7 +13,8 @@ import (
 
 // AsynqQueue implements Queue interface using asynq
 type AsynqQueue struct {
-	client *asynq.Client
+	client      *asynq.Client
+	redisClient *redis.Client
 }
 
 // NewQueue creates a new Queue instance using asynq
@@ -27,7 +28,10 @@ func NewQueue(redis *redis.Client) (Queue, error) {
 		return nil, err
 	}
 
-	return &AsynqQueue{client: client}, nil
+	return &AsynqQueue{
+		client:      client,
+		redisClient: redis,
+	}, nil
 }
 
 func (q *AsynqQueue) Enqueue(ctx context.Context, taskName string, payload any, opts ...Option) (*OutputEnqueue, error) {
@@ -47,6 +51,68 @@ func (q *AsynqQueue) Enqueue(ctx context.Context, taskName string, payload any, 
 
 func (q *AsynqQueue) Close() error {
 	return q.client.Close()
+}
+
+func (q *AsynqQueue) GetTaskInfo(ctx context.Context, taskID string) (*TaskInfo, error) {
+	inspector := asynq.NewInspectorFromRedisClient(q.redisClient)
+
+	// Try to find task in different states
+	// First check active tasks
+	tasks, err := inspector.ListActiveTasks(taskID)
+	if err == nil && len(tasks) > 0 {
+		return convertAsynqTaskInfo(tasks[0], TaskStateActive), nil
+	}
+
+	// Check pending tasks
+	tasks, err = inspector.ListPendingTasks(taskID)
+	if err == nil && len(tasks) > 0 {
+		return convertAsynqTaskInfo(tasks[0], TaskStatePending), nil
+	}
+
+	// Check scheduled tasks
+	tasks, err = inspector.ListScheduledTasks(taskID)
+	if err == nil && len(tasks) > 0 {
+		return convertAsynqTaskInfo(tasks[0], TaskStateScheduled), nil
+	}
+
+	// Check retry tasks
+	tasks, err = inspector.ListRetryTasks(taskID)
+	if err == nil && len(tasks) > 0 {
+		return convertAsynqTaskInfo(tasks[0], TaskStateRetry), nil
+	}
+
+	// Check archived tasks
+	tasks, err = inspector.ListArchivedTasks(taskID)
+	if err == nil && len(tasks) > 0 {
+		return convertAsynqTaskInfo(tasks[0], TaskStateArchived), nil
+	}
+
+	return nil, fmt.Errorf("task not found: %s", taskID)
+}
+
+func convertAsynqTaskInfo(task *asynq.TaskInfo, state TaskState) *TaskInfo {
+	info := &TaskInfo{
+		ID:        task.ID,
+		Type:      task.Type,
+		Payload:   task.Payload,
+		State:     state,
+		Queue:     task.Queue,
+		MaxRetry:  task.MaxRetry,
+		Retried:   task.Retried,
+		LastError: task.LastErr,
+	}
+
+	if !task.CompletedAt.IsZero() {
+		completedAt := task.CompletedAt
+		info.CompletedAt = &completedAt
+	}
+
+	if !task.NextProcessAt.IsZero() {
+		nextProcessAt := task.NextProcessAt
+		info.NextProcessAt = &nextProcessAt
+	}
+
+	return info
 }
 
 // AsynqWorker implements Worker interface using asynq
@@ -121,6 +187,10 @@ func (w *AsynqWorker) Start() error {
 func (w *AsynqWorker) Stop() {
 	w.server.Shutdown()
 	logging.Info(context.Background(), "Worker stopped")
+}
+
+func (w *AsynqWorker) GetTaskIDFromContext(ctx context.Context) (string, bool) {
+	return asynq.GetTaskID(ctx)
 }
 
 // toAsynqOptions converts our internal options to asynq options

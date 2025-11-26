@@ -10,6 +10,9 @@ type Queue interface {
 	// Enqueue adds a task to the queue
 	Enqueue(ctx context.Context, taskName string, payload any, opts ...Option) (*OutputEnqueue, error)
 
+	// GetTaskInfo retrieves information about a task by its ID
+	GetTaskInfo(ctx context.Context, taskID string) (*TaskInfo, error)
+
 	// Close closes the queue client connection
 	Close() error
 }
@@ -31,6 +34,11 @@ type Worker interface {
 	// RegisterWithMiddleware registers a handler with middleware functions
 	// Middleware will be executed in the order they are provided
 	RegisterWithMiddleware(taskType string, handler Handler, middleware ...MiddlewareFunc) error
+
+	// GetTaskIDFromContext retrieves the task ID from the context
+	// This is useful inside handler functions to get the current task ID
+	// Returns the task ID and a boolean indicating if it was found
+	GetTaskIDFromContext(ctx context.Context) (string, bool)
 }
 
 // Handler is a function that processes a task
@@ -41,6 +49,32 @@ type Handler func(ctx context.Context, payload []byte) error
 // MiddlewareFunc is a function that wraps a Handler
 // It can be used for logging, metrics, error handling, etc.
 type MiddlewareFunc func(Handler) Handler
+
+// TaskState represents the state of a task
+type TaskState string
+
+const (
+	TaskStatePending   TaskState = "pending"
+	TaskStateActive    TaskState = "active"
+	TaskStateScheduled TaskState = "scheduled"
+	TaskStateRetry     TaskState = "retry"
+	TaskStateArchived  TaskState = "archived"
+	TaskStateCompleted TaskState = "completed"
+)
+
+// TaskInfo contains information about a task
+type TaskInfo struct {
+	ID            string
+	Type          string
+	Payload       []byte
+	State         TaskState
+	Queue         string
+	MaxRetry      int
+	Retried       int
+	LastError     string
+	CompletedAt   *time.Time
+	NextProcessAt *time.Time
+}
 
 type OutputEnqueue struct {
 	TaskID  string
