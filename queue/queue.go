@@ -3,14 +3,29 @@ package queue
 import (
 	"context"
 	"time"
-
-	"github.com/hibiken/asynq"
 )
 
 // Queue defines the interface for queueing tasks
 type Queue interface {
 	Enqueue(ctx context.Context, taskName string, payload any, opts ...Option) (*OutputEnqueue, error)
 }
+
+// Worker defines the interface for processing tasks
+type Worker interface {
+	// Start starts the worker and begins processing tasks
+	Start() error
+
+	// Stop stops the worker gracefully
+	Stop()
+
+	// Register registers a handler for a specific task type
+	Register(taskType string, handler Handler) error
+}
+
+// Handler is a function that processes a task
+// It receives context and the task payload as []byte
+// It should return an error if the task processing fails
+type Handler func(ctx context.Context, payload []byte) error
 
 type OutputEnqueue struct {
 	TaskID  string
@@ -113,45 +128,4 @@ func Group(name string) Option {
 	return func(o *options) {
 		o.group = name
 	}
-}
-
-// toAsynqOptions converts our internal options to asynq options
-func toAsynqOptions(opts ...Option) []asynq.Option {
-	o := &options{}
-	for _, opt := range opts {
-		opt(o)
-	}
-
-	var aOpts []asynq.Option
-	if o.maxRetry > 0 {
-		aOpts = append(aOpts, asynq.MaxRetry(o.maxRetry))
-	}
-	if o.queue != "" {
-		aOpts = append(aOpts, asynq.Queue(o.queue))
-	}
-	if o.timeout > 0 {
-		aOpts = append(aOpts, asynq.Timeout(o.timeout))
-	}
-	if !o.deadline.IsZero() {
-		aOpts = append(aOpts, asynq.Deadline(o.deadline))
-	}
-	if o.unique > 0 {
-		aOpts = append(aOpts, asynq.Unique(o.unique))
-	}
-	if !o.processAt.IsZero() {
-		aOpts = append(aOpts, asynq.ProcessAt(o.processAt))
-	}
-	if o.processIn > 0 {
-		aOpts = append(aOpts, asynq.ProcessIn(o.processIn))
-	}
-	if o.taskID != "" {
-		aOpts = append(aOpts, asynq.TaskID(o.taskID))
-	}
-	if o.retention > 0 {
-		aOpts = append(aOpts, asynq.Retention(o.retention))
-	}
-	if o.group != "" {
-		aOpts = append(aOpts, asynq.Group(o.group))
-	}
-	return aOpts
 }

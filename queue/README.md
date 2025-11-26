@@ -1,99 +1,341 @@
 # Queue Package
 
-A flexible and extensible asynchronous task queue interface for the application with an Asynq implementation.
+Package queue menyediakan abstraksi untuk task queue dan background job processing menggunakan Redis. Package ini menggunakan [hibiken/asynq](https://github.com/hibiken/asynq) sebagai implementasi internal, tetapi API-nya tidak tergantung pada asynq sehingga implementasi bisa diganti tanpa mengubah kode yang menggunakan package ini.
 
-## Overview
+## Features
 
-The `queue` package provides a standardized interface for asynchronous task processing within the application. It defines a common interface (`IQueue`) that can be implemented by various queue providers, with Asynq being the default implementation.
+- ✅ **Abstracted Interface** - Tidak tergantung pada library queue tertentu
+- ✅ **Queue & Worker** - Producer dan consumer pattern
+- ✅ **Task Scheduling** - Schedule tasks untuk diproses nanti
+- ✅ **Priority Queues** - Multiple queues dengan priority berbeda
+- ✅ **Retry Mechanism** - Automatic retry untuk failed tasks
+- ✅ **Unique Tasks** - Prevent duplicate tasks
+- ✅ **Timeout & Deadline** - Control task execution time
+- ✅ **Graceful Shutdown** - Safe worker shutdown
+- ✅ **Type-Safe** - Full Go type safety
 
-## Interface
-
-The package defines the `IQueue` interface with the following method:
+## Installation
 
 ```go
-type IQueue interface {
-	Enqueue(ctx context.Context, taskName string, payload any, opts ...Option) (*OutputEnqueue, error)
+import "github.com/fatkulnurk/foundation/queue"
+```
+
+## Quick Start
+
+### 1. Producer (Enqueue Tasks)
+
+```go
+// Setup Redis
+redisClient := redis.NewClient(&redis.Options{
+    Addr: "localhost:6379",
+})
+
+// Create queue
+q, err := queue.NewQueue(redisClient)
+if err != nil {
+    log.Fatal(err)
+}
+
+// Enqueue task
+result, err := q.Enqueue(ctx, "email:send", EmailPayload{
+    To:      "user@example.com",
+    Subject: "Welcome!",
+    Body:    "Welcome to our service!",
+})
+```
+
+### 2. Worker (Process Tasks)
+
+```go
+// Create worker config
+cfg := &queue.Config{
+    Concurrency: 10,
+}
+
+// Create worker
+worker := queue.NewWorker(cfg, redisClient)
+
+// Register handler
+worker.Register("email:send", func(ctx context.Context, payload []byte) error {
+    var email EmailPayload
+    json.Unmarshal(payload, &email)
+    
+    // Process email
+    return sendEmail(email)
+})
+
+// Start worker
+worker.Start()
+```
+
+## Interfaces
+
+### Queue Interface
+
+```go
+type Queue interface {
+    Enqueue(ctx context.Context, taskName string, payload any, opts ...Option) (*OutputEnqueue, error)
 }
 ```
 
-### Methods
+### Worker Interface
 
-- **Enqueue**: Adds a task to the queue with the specified name, payload, and options
+```go
+type Worker interface {
+    Start() error
+    Stop()
+    Register(taskType string, handler Handler) error
+}
+```
+
+### Handler Type
+
+```go
+type Handler func(ctx context.Context, payload []byte) error
+```
+
+## Configuration
+
+```go
+type Config struct {
+    // Concurrency is the maximum number of concurrent processing of tasks
+    Concurrency int
+
+    // Queues is a map of queue names to their priority levels
+    Queues map[string]int
+
+    // StrictPriority indicates whether the queue priority should be treated strictly
+    StrictPriority bool
+
+    // ShutdownTimeout is the duration to wait for workers to finish before forcing shutdown
+    ShutdownTimeout int
+}
+```
 
 ## Task Options
 
-The package provides a flexible options system for configuring tasks. Available options include:
-
-- **MaxRetry(n int)**: Sets the maximum number of retry attempts for a task
-- **Queue(name string)**: Sets the queue name for a task
-- **Timeout(d time.Duration)**: Sets the maximum execution time for a task
-- **Deadline(t time.Time)**: Sets the absolute time after which a task will fail if still running
-- **Unique(d time.Duration)**: Makes the task unique for the specified duration
-- **ProcessAt(t time.Time)**: Schedules a task to be processed at a specific time
-- **ProcessIn(d time.Duration)**: Schedules a task to be processed after the specified duration
-- **TaskID(id string)**: Assigns a custom ID to a task
-- **Retention(d time.Duration)**: Sets how long task data will be kept after completion
-- **Group(name string)**: Assigns a task to a specific group
-
-## Implementations
-
-### Asynq Queue
-
-The package includes an implementation using the [Asynq](https://github.com/hibiken/asynq) library, which provides Redis-backed distributed task queue:
-
+### MaxRetry
 ```go
-type AsynqQueue struct {
-	client *asynq.Client
-}
+queue.Enqueue(ctx, "task", payload, queue.MaxRetry(3))
 ```
 
-#### Usage
+### QueueName (Priority)
+```go
+queue.Enqueue(ctx, "task", payload, queue.QueueName("critical"))
+```
+
+### Timeout
+```go
+queue.Enqueue(ctx, "task", payload, queue.Timeout(30*time.Second))
+```
+
+### ProcessIn (Delayed)
+```go
+queue.Enqueue(ctx, "task", payload, queue.ProcessIn(5*time.Minute))
+```
+
+### ProcessAt (Scheduled)
+```go
+queue.Enqueue(ctx, "task", payload, queue.ProcessAt(tomorrow))
+```
+
+### Unique
+```go
+queue.Enqueue(ctx, "task", payload, queue.Unique(1*time.Hour))
+```
+
+### TaskID
+```go
+queue.Enqueue(ctx, "task", payload, queue.TaskID("custom-id"))
+```
+
+### Deadline
+```go
+queue.Enqueue(ctx, "task", payload, queue.Deadline(time.Now().Add(1*time.Hour)))
+```
+
+### Retention
+```go
+queue.Enqueue(ctx, "task", payload, queue.Retention(7*24*time.Hour))
+```
+
+### Group
+```go
+queue.Enqueue(ctx, "task", payload, queue.Group("user-operations"))
+```
+
+## Examples
+
+### Example 1: Simple Task
 
 ```go
-import (
-	"context"
-	"github.com/hibiken/asynq"
-	"github.com/redis/go-redis/v9"
-	"your-project/pkg/queue"
-	"your-project/config"
-)
-
-// Initialize Redis client
-redisClient := redis.NewClient(&redis.Options{
-	Addr: "localhost:6379",
+// Enqueue
+q.Enqueue(ctx, "email:send", EmailPayload{
+    To:      "user@example.com",
+    Subject: "Hello",
+    Body:    "Hello World",
 })
 
-// Initialize Asynq client
-asynqClient, err := queue.NewAsynqClient(&config.Queue{}, redisClient)
-if err != nil {
-	// Handle error
-}
+// Worker
+worker.Register("email:send", func(ctx context.Context, payload []byte) error {
+    var email EmailPayload
+    json.Unmarshal(payload, &email)
+    return sendEmail(email)
+})
+```
 
-// Create queue instance
-queueInstance := queue.NewAsynqQueue(asynqClient)
+### Example 2: Task with Retry and Timeout
 
-// Use the queue
-ctx := context.Background()
-payload := map[string]interface{}{
-	"user_id": 123,
-	"email": "user@example.com",
-}
-
-// Enqueue a task with options
-result, err := queueInstance.Enqueue(
-	ctx,
-	"email:send",
-	payload,
-	queue.MaxRetry(3),
-	queue.Queue("critical"),
-	queue.ProcessIn(30*time.Minute),
+```go
+q.Enqueue(ctx, "image:process", ImagePayload{
+    URL: "https://example.com/image.jpg",
+},
+    queue.MaxRetry(3),
+    queue.Timeout(5*time.Minute),
+    queue.QueueName("critical"),
 )
 ```
 
-## Extending
+### Example 3: Scheduled Task
 
-To implement a new queue provider, create a struct that implements the `IQueue` interface.
+```go
+// Send reminder in 24 hours
+q.Enqueue(ctx, "reminder:send", ReminderPayload{
+    UserID:  "user123",
+    Message: "Don't forget!",
+},
+    queue.ProcessIn(24*time.Hour),
+)
+```
 
-## Thread Safety
+### Example 4: Unique Task
 
-All implementations are designed to be thread-safe and can be safely used concurrently from multiple goroutines.
+```go
+// Prevent duplicate report generation
+q.Enqueue(ctx, "report:generate", ReportPayload{
+    ReportID: "monthly-2024-11",
+},
+    queue.Unique(1*time.Hour),
+    queue.TaskID("report-monthly-2024-11"),
+)
+```
+
+### Example 5: Multiple Queues with Priority
+
+```go
+cfg := &queue.Config{
+    Concurrency: 10,
+    Queues: map[string]int{
+        "critical": 6,  // Processed more frequently
+        "default":  3,
+        "low":      1,  // Processed less frequently
+    },
+}
+
+worker := queue.NewWorker(cfg, redisClient)
+```
+
+## Running the Example
+
+```bash
+# Terminal 1: Start worker
+cd pkg/queue/example
+go run main.go worker
+
+# Terminal 2: Enqueue tasks
+go run main.go
+```
+
+## Best Practices
+
+### 1. **Use Typed Payloads**
+```go
+type EmailPayload struct {
+    To      string `json:"to"`
+    Subject string `json:"subject"`
+    Body    string `json:"body"`
+}
+```
+
+### 2. **Handle Errors Properly**
+```go
+worker.Register("task", func(ctx context.Context, payload []byte) error {
+    // Return error to trigger retry
+    if err := process(); err != nil {
+        return fmt.Errorf("processing failed: %w", err)
+    }
+    return nil
+})
+```
+
+### 3. **Use Context for Cancellation**
+```go
+worker.Register("task", func(ctx context.Context, payload []byte) error {
+    select {
+    case <-ctx.Done():
+        return ctx.Err()
+    case <-time.After(1 * time.Second):
+        // Do work
+    }
+    return nil
+})
+```
+
+### 4. **Set Appropriate Timeouts**
+```go
+queue.Enqueue(ctx, "long-task", payload,
+    queue.Timeout(10*time.Minute),
+    queue.MaxRetry(2),
+)
+```
+
+### 5. **Use Priority Queues**
+```go
+// Critical tasks
+queue.Enqueue(ctx, "payment:process", payload, queue.QueueName("critical"))
+
+// Low priority tasks
+queue.Enqueue(ctx, "analytics:update", payload, queue.QueueName("low"))
+```
+
+### 6. **Graceful Shutdown**
+```go
+sigChan := make(chan os.Signal, 1)
+signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+
+go func() {
+    worker.Start()
+}()
+
+<-sigChan
+worker.Stop() // Graceful shutdown
+```
+
+## Architecture
+
+```
+External Code (Your App)
+        ↓
+    Queue Interface (abstraction)
+        ↓
+    AsynqQueue (implementation)
+        ↓
+    hibiken/asynq (internal only)
+        ↓
+    Redis
+```
+
+**Key Point**: External code hanya depend pada `Queue` dan `Worker` interface, bukan pada `asynq` atau implementasi spesifik lainnya.
+
+## Migration Guide
+
+Jika ingin mengganti implementasi dari asynq ke library lain:
+
+1. Buat file baru (e.g., `rabbitmq.go`)
+2. Implement `Queue` dan `Worker` interface
+3. Update `NewQueue()` dan `NewWorker()` untuk menggunakan implementasi baru
+4. Kode external tidak perlu diubah!
+
+## License
+
+MIT
