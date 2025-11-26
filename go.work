@@ -1,0 +1,20 @@
+go 1.25
+
+use (
+	.
+	./app
+	./cache
+	./container
+	./httpclient
+	./httprouter
+	./logging
+	./mailer
+	./module
+	./queue
+	./shared
+	./storage
+	./support
+	./validation
+	./view
+	./workerpool
+)
