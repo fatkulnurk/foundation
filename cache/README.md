@@ -1,69 +1,135 @@
-# Cache Package
+# Cache - Temporary Data Storage
 
-A flexible and extensible caching interface for the application with a Redis implementation.
+Module for storing temporary data to make your application faster.
 
-## Overview
+## What is Cache?
 
-The `cache` package provides a standardized interface for caching operations within the application. It defines a common interface (`ICache`) that can be implemented by various cache providers, with Redis being the default implementation.
+Cache is a temporary data storage. Think of it like a notepad on your desk - you keep frequently used information there so you don't have to walk to the filing cabinet every time you need the same data.
 
-## Interface
+**Use cases:**
+- Store frequently accessed user data
+- Store heavy computation results
+- Store database query results to avoid repeated queries
 
-The package defines the `ICache` interface with the following methods:
+## Module Contents
 
+### 1. **cache.go** - Main Interface
+Defines 4 basic cache operations:
+- `Set` - Store data (with expiration time)
+- `Get` - Retrieve data
+- `Delete` - Remove data
+- `Has` - Check if data exists
+
+### 2. **redis.go** - Redis Cache
+Cache implementation using Redis (fast in-memory database).
+
+**How to use:**
 ```go
-type ICache interface {
-	Set(ctx context.Context, key string, value any, ttlSeconds int) error
-	Get(ctx context.Context, key string) (string, error)
-	Delete(ctx context.Context, key string) error
-	Has(ctx context.Context, key string) (bool, error)
-}
-```
-
-### Methods
-
-- **Set**: Stores a value in the cache with a specified TTL (Time-To-Live) in seconds
-- **Get**: Retrieves a value from the cache by its key
-- **Delete**: Removes a value from the cache by its key
-- **Has**: Checks if a key exists in the cache
-
-## Implementations
-
-### Redis Cache
-
-The package includes a Redis implementation of the cache interface:
-
-```go
-type RedisCache struct {
-	client *redis.Client
-}
-```
-
-#### Usage
-
-```go
-import (
-	"github.com/redis/go-redis/v9"
-	"your-project/pkg/cache"
-)
-
-// Initialize Redis client
+// Create Redis connection
 redisClient := redis.NewClient(&redis.Options{
-	Addr: "localhost:6379",
+    Addr: "localhost:6379",
 })
 
-// Create cache instance
-cacheInstance := cache.NewRedisCache(redisClient)
+// Create cache with prefix
+cfg := &cache.Config{Prefix: "myapp:"}
+c := cache.NewRedisCache(cfg, redisClient)
 
-// Use the cache
-ctx := context.Background()
-cacheInstance.Set(ctx, "key", "value", 3600) // Cache for 1 hour
-value, err := cacheInstance.Get(ctx, "key")
+// Store data for 60 seconds
+c.Set(ctx, "user:1", "John Doe", 60)
+
+// Retrieve data
+value, _ := c.Get(ctx, "user:1")
 ```
 
-## Extending
+### 3. **local.go** - In-Memory Cache
+Cache implementation stored in application memory (no Redis needed).
 
-To implement a new cache provider, create a struct that implements all methods of the `ICache` interface.
+**When to use:**
+- For testing
+- Small applications that don't need Redis
+- Data that doesn't need to be shared across servers
 
-## Thread Safety
+**How to use:**
+```go
+cfg := &cache.Config{Prefix: "myapp:"}
+c := cache.NewLocalCache(cfg)
 
-All implementations are designed to be thread-safe and can be safely used concurrently from multiple goroutines.
+// Same API as Redis
+c.Set(ctx, "session:abc", "data", 300)
+value, _ := c.Get(ctx, "session:abc")
+```
+
+### 4. **config.go** - Configuration
+Simple cache configuration:
+- `Prefix` - Prefix for all keys (example: "myapp:")
+
+Can be loaded from environment variable:
+```bash
+CACHE_PREFIX=myapp: go run main.go
+```
+
+### 5. **example/** - Usage Examples
+Folder contains complete examples of how to use cache.
+
+**Run:**
+```bash
+# Make sure Redis is running
+redis-server
+
+# Run example
+go run ./example
+```
+
+## When to Use Redis vs Local?
+
+### Use **Redis** when:
+- ✅ Application runs on multiple servers
+- ✅ Need persistent cache (survives restart)
+- ✅ Data needs to be shared across services
+- ✅ Production application
+
+### Use **Local** when:
+- ✅ For testing
+- ✅ Small application (single server)
+- ✅ Don't want to install Redis
+- ✅ Cache data is not critical
+
+## Important Features
+
+### TTL (Time To Live)
+Every data has an expiration time. After the time expires, data is automatically removed.
+
+```go
+// Data expires after 60 seconds
+c.Set(ctx, "key", "value", 60)
+
+// Data expires after 1 hour (3600 seconds)
+c.Set(ctx, "key", "value", 3600)
+```
+
+### Prefix
+Prefix helps organize data and avoid key conflicts.
+
+```go
+cfg := &cache.Config{Prefix: "myapp:"}
+c := cache.NewRedisCache(cfg, redisClient)
+
+// Actual key: "myapp:user:1"
+c.Set(ctx, "user:1", "John", 60)
+```
+
+## Installation
+
+```bash
+go get github.com/fatkulnurk/foundation/cache
+```
+
+## Dependencies
+
+- Redis cache: `github.com/redis/go-redis/v9`
+- Support utilities: `github.com/fatkulnurk/foundation/support`
+
+## See Also
+
+- `example/main.go` - Complete examples of all features
+- Redis documentation: https://redis.io/docs/
