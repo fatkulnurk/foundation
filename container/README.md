@@ -160,9 +160,9 @@ func main() {
 ## Get vs MustGet
 
 ### Use `Get()` when:
-- ✅ Service might not exist
-- ✅ You want to handle errors gracefully
-- ✅ Optional dependencies
+-  Service might not exist
+-  You want to handle errors gracefully
+-  Optional dependencies
 
 ```go
 cache, err := c.Get("cache")
@@ -173,9 +173,9 @@ if err != nil {
 ```
 
 ### Use `MustGet()` when:
-- ✅ Service must exist (critical dependency)
-- ✅ Application cannot run without it
-- ✅ You want to fail fast
+-  Service must exist (critical dependency)
+-  Application cannot run without it
+-  You want to fail fast
 
 ```go
 // Application cannot run without database
@@ -296,6 +296,93 @@ go get github.com/fatkulnurk/foundation/container
 ## Dependencies
 
 None - uses only Go standard library.
+
+---
+
+## Extending
+
+The container package is designed to be simple and focused on dependency injection. You can extend it by creating wrapper functions or custom service providers.
+
+### Custom Service Provider
+
+```go
+type ServiceProvider interface {
+    Register(c *container.Container)
+    Boot(c *container.Container)
+}
+
+type DatabaseProvider struct{}
+
+func (p *DatabaseProvider) Register(c *container.Container) {
+    c.Set("db", func(c *container.Container) interface{} {
+        config := c.Get("config").(*Config)
+        return connectDatabase(config.DatabaseURL)
+    })
+}
+
+func (p *DatabaseProvider) Boot(c *container.Container) {
+    db := c.Get("db").(*Database)
+    db.Migrate()
+}
+```
+
+### Example: Lazy Loading Services
+
+```go
+type LazyContainer struct {
+    *container.Container
+    loaded map[string]bool
+}
+
+func NewLazyContainer() *LazyContainer {
+    return &LazyContainer{
+        Container: container.New(),
+        loaded:    make(map[string]bool),
+    }
+}
+
+func (lc *LazyContainer) GetLazy(name string) interface{} {
+    if !lc.loaded[name] {
+        // Initialize service on first access
+        service := lc.Get(name)
+        if initializer, ok := service.(interface{ Initialize() }); ok {
+            initializer.Initialize()
+        }
+        lc.loaded[name] = true
+    }
+    return lc.Get(name)
+}
+```
+
+### Example: Scoped Container
+
+```go
+type ScopedContainer struct {
+    parent *container.Container
+    scope  *container.Container
+}
+
+func NewScopedContainer(parent *container.Container) *ScopedContainer {
+    return &ScopedContainer{
+        parent: parent,
+        scope:  container.New(),
+    }
+}
+
+func (sc *ScopedContainer) Get(name string) interface{} {
+    // Try scope first, then parent
+    if sc.scope.Has(name) {
+        return sc.scope.Get(name)
+    }
+    return sc.parent.Get(name)
+}
+
+func (sc *ScopedContainer) Set(name string, value interface{}) {
+    sc.scope.Set(name, value)
+}
+```
+
+---
 
 ## See Also
 

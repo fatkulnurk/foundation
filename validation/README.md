@@ -32,15 +32,15 @@ The validation package helps you **check if data is correct** before using it in
 
 ## Features
 
-- ✅ **Struct Tag Validation** - Validate using `validate:""` tags
-- ✅ **Map Validation** - Validate map[string]any data
-- ✅ **Single Field Validation** - Validate individual fields
-- ✅ **20+ Built-in Rules** - Email, phone, password, URL, etc.
-- ✅ **Custom Rules** - Create your own validation logic
-- ✅ **Multiple Errors** - Get all validation errors at once
-- ✅ **Type-Safe** - Works with Go types
-- ✅ **Zero Dependencies** - Only uses standard library (except UUID)
-- ✅ **Easy to Use** - Simple, intuitive API
+-  **Struct Tag Validation** - Validate using `validate:""` tags
+-  **Map Validation** - Validate map[string]any data
+-  **Single Field Validation** - Validate individual fields
+-  **20+ Built-in Rules** - Email, phone, password, URL, etc.
+-  **Custom Rules** - Create your own validation logic
+-  **Multiple Errors** - Get all validation errors at once
+-  **Type-Safe** - Works with Go types
+-  **Zero Dependencies** - Only uses standard library (except UUID)
+-  **Easy to Use** - Simple, intuitive API
 
 ---
 
@@ -859,7 +859,7 @@ func main() {
                 fmt.Printf("  - %s: %s\n", err.Field, err.Message)
             }
         } else {
-            fmt.Printf("User %d: Valid ✓\n", i+1)
+            fmt.Printf("User %d: Valid \n", i+1)
         }
     }
 }
@@ -1179,9 +1179,140 @@ type User struct {
 
 ---
 
-## License
+## Extending
 
-MIT
+You can create custom validation rules using the Custom function.
+
+### Creating Custom Rules
+
+```go
+// Custom rule function
+func MyCustomRule(message string) validation.Rule {
+    return validation.Custom(func(field string, value any) *validation.Error {
+        // Your validation logic
+        s, ok := value.(string)
+        if !ok {
+            return &validation.Error{
+                Field:   field,
+                Message: "must be a string",
+            }
+        }
+        
+        // Check your condition
+        if !myCondition(s) {
+            msg := message
+            if msg == "" {
+                msg = "validation failed"
+            }
+            return &validation.Error{
+                Field:   field,
+                Message: msg,
+            }
+        }
+        
+        return nil
+    })
+}
+```
+
+### Example: Custom Email Domain Validation
+
+```go
+func EmailDomain(allowedDomains []string) validation.Rule {
+    return validation.Custom(func(field string, value any) *validation.Error {
+        email, ok := value.(string)
+        if !ok {
+            return &validation.Error{
+                Field:   field,
+                Message: "must be a string",
+            }
+        }
+        
+        parts := strings.Split(email, "@")
+        if len(parts) != 2 {
+            return &validation.Error{
+                Field:   field,
+                Message: "invalid email format",
+            }
+        }
+        
+        domain := parts[1]
+        for _, allowed := range allowedDomains {
+            if domain == allowed {
+                return nil
+            }
+        }
+        
+        return &validation.Error{
+            Field:   field,
+            Message: fmt.Sprintf("email domain must be one of: %v", allowedDomains),
+        }
+    })
+}
+
+// Usage
+data := map[string]any{
+    "email": "user@company.com",
+}
+
+rules := map[string][]validation.Rule{
+    "email": {
+        validation.Required(""),
+        EmailDomain([]string{"company.com", "example.com"}),
+    },
+}
+
+errs := validation.ValidateMap(data, rules)
+```
+
+### Example: Custom Password Strength
+
+```go
+func PasswordStrength(minScore int) validation.Rule {
+    return validation.Custom(func(field string, value any) *validation.Error {
+        password, ok := value.(string)
+        if !ok {
+            return &validation.Error{
+                Field:   field,
+                Message: "must be a string",
+            }
+        }
+        
+        score := 0
+        if len(password) >= 8 {
+            score++
+        }
+        if len(password) >= 12 {
+            score++
+        }
+        if strings.ContainsAny(password, "ABCDEFGHIJKLMNOPQRSTUVWXYZ") {
+            score++
+        }
+        if strings.ContainsAny(password, "0123456789") {
+            score++
+        }
+        if strings.ContainsAny(password, "!@#$%^&*()") {
+            score++
+        }
+        
+        if score < minScore {
+            return &validation.Error{
+                Field:   field,
+                Message: fmt.Sprintf("password strength too weak (score: %d, required: %d)", score, minScore),
+            }
+        }
+        
+        return nil
+    })
+}
+
+// Usage
+pool.Submit(workerpool.Job{
+    Task: func(ctx context.Context) error {
+        return validation.Validate("password", "MyP@ss123", "required")
+    },
+})
+```
 
 ---
 
@@ -1202,4 +1333,4 @@ The validation package provides a **simple, powerful way to validate data** in G
 - Credit card, postal code, hex color validation
 - Custom rules for your specific needs
 
-Now you can easily validate all your data in Go applications! 🚀
+Now you can easily validate all your data in Go applications! 

@@ -2,7 +2,7 @@
 
 The `mailer` package provides a flexible and extensible email sending solution for Go applications. It supports multiple email delivery methods including SMTP and AWS SES (Simple Email Service).
 
-> **Note:** ⚠️ This package is still under development and may undergo API changes.
+> **Note:**  This package is still under development and may undergo API changes.
 
 ## Features
 
@@ -125,3 +125,160 @@ buffer, err := rawMessage.Build(context.Background())
 - `builder.go`: Provides functionality for building raw email messages
 - `smtp.go`: Implements email delivery via SMTP
 - `ses.go`: Implements email delivery via AWS SES
+
+---
+
+## Extending
+
+You can create custom mailer implementations by implementing the Mailer interface.
+
+### Custom Mailer Implementation
+
+```go
+type Mailer interface {
+    Send(ctx context.Context, message Message) error
+}
+```
+
+### Example: SendGrid Mailer
+
+```go
+type SendGridMailer struct {
+    apiKey string
+    client *sendgrid.Client
+}
+
+func NewSendGridMailer(apiKey string) *SendGridMailer {
+    return &SendGridMailer{
+        apiKey: apiKey,
+        client: sendgrid.NewSendClient(apiKey),
+    }
+}
+
+func (m *SendGridMailer) Send(ctx context.Context, message mailer.Message) error {
+    from := mail.NewEmail(message.FromName, message.FromAddress)
+    subject := message.Subject
+    to := mail.NewEmail("", message.ToAddresses[0])
+    
+    var content *mail.Content
+    if message.HTMLBody != "" {
+        content = mail.NewContent("text/html", message.HTMLBody)
+    } else {
+        content = mail.NewContent("text/plain", message.TextBody)
+    }
+    
+    msg := mail.NewV3MailInit(from, subject, to, content)
+    
+    response, err := m.client.Send(msg)
+    if err != nil {
+        return err
+    }
+    
+    if response.StatusCode >= 400 {
+        return fmt.Errorf("sendgrid error: %d", response.StatusCode)
+    }
+    
+    return nil
+}
+```
+
+### Example: Mailgun Mailer
+
+```go
+type MailgunMailer struct {
+    domain string
+    apiKey string
+    mg     *mailgun.MailgunImpl
+}
+
+func NewMailgunMailer(domain, apiKey string) *MailgunMailer {
+    return &MailgunMailer{
+        domain: domain,
+        apiKey: apiKey,
+        mg:     mailgun.NewMailgun(domain, apiKey),
+    }
+}
+
+func (m *MailgunMailer) Send(ctx context.Context, message mailer.Message) error {
+    msg := m.mg.NewMessage(
+        fmt.Sprintf("%s <%s>", message.FromName, message.FromAddress),
+        message.Subject,
+        message.TextBody,
+        message.ToAddresses...,
+    )
+    
+    if message.HTMLBody != "" {
+        msg.SetHtml(message.HTMLBody)
+    }
+    
+    // Add CC
+    for _, cc := range message.CcAddresses {
+        msg.AddCC(cc)
+    }
+    
+    // Add BCC
+    for _, bcc := range message.BccAddresses {
+        msg.AddBCC(bcc)
+    }
+    
+    // Add attachments
+    for _, att := range message.Attachments {
+        msg.AddBufferAttachment(att.Name, att.Content)
+    }
+    
+    _, _, err := m.mg.Send(ctx, msg)
+    return err
+}
+```
+
+### Example: Queue-based Mailer
+
+```go
+type QueueMailer struct {
+    queue queue.Queue
+}
+
+func NewQueueMailer(q queue.Queue) *QueueMailer {
+    return &QueueMailer{queue: q}
+}
+
+func (m *QueueMailer) Send(ctx context.Context, message mailer.Message) error {
+    // Enqueue email for async processing
+    _, err := m.queue.Enqueue(ctx, "email:send", message,
+        queue.MaxRetry(3),
+        queue.Timeout(30*time.Second),
+    )
+    return err
+}
+```
+
+### Example: Multi-provider Mailer with Fallback
+
+```go
+type MultiMailer struct {
+    providers []mailer.Mailer
+}
+
+func NewMultiMailer(providers ...mailer.Mailer) *MultiMailer {
+    return &MultiMailer{providers: providers}
+}
+
+func (m *MultiMailer) Send(ctx context.Context, message mailer.Message) error {
+    var lastErr error
+    
+    for i, provider := range m.providers {
+        err := provider.Send(ctx, message)
+        if err == nil {
+            log.Printf("Email sent successfully via provider %d", i)
+            return nil
+        }
+        
+        log.Printf("Provider %d failed: %v", i, err)
+        lastErr = err
+    }
+    
+    return fmt.Errorf("all providers failed, last error: %w", lastErr)
+}
+```
+
+---

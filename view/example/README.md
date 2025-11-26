@@ -2,7 +2,7 @@
 
 Contoh lengkap penggunaan view package dengan struktur template yang terpisah.
 
-## 📁 Struktur Direktori
+##  Struktur Direktori
 
 ```
 example/
@@ -24,7 +24,7 @@ example/
             └── profile.html        # Halaman profile user
 ```
 
-## 🚀 Cara Menjalankan
+##  Cara Menjalankan
 
 ```bash
 cd pkg/view/example
@@ -123,7 +123,7 @@ Running the example will produce:
 - Custom resolver demo: ~2.5KB HTML
 - Production caching demo
 
-## 🔧 Customization
+##  Customization
 
 Anda bisa memodifikasi:
 1. **Layouts**: Edit `view/layouts/app.html`
@@ -132,6 +132,6 @@ Anda bisa memodifikasi:
 4. **Styling**: Update inline CSS atau tambahkan external CSS
 5. **Data**: Ubah data di `main.go`
 
-## 📚 Learn More
+##  Learn More
 
 Lihat dokumentasi lengkap di `../README.md`

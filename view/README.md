@@ -32,17 +32,17 @@ The view package helps you **render HTML templates** in your Go applications. It
 
 ## Features
 
-- ✅ **Template Caching** - Automatic caching for production performance
-- ✅ **Flexible Structure** - Support for layouts, components, and nested views
-- ✅ **Separate Paths** - Templates can be in different locations
-- ✅ **Custom Path Resolver** - Full control over path resolution
-- ✅ **20+ Built-in Functions** - Date, math, string, and utility functions
-- ✅ **Custom Functions** - Add your own template functions
-- ✅ **Global Data** - Shared data across all templates
-- ✅ **Thread-Safe** - Concurrent rendering with sync.RWMutex
-- ✅ **Hot Reload** - Disable cache for development
-- ✅ **Custom Delimiters** - Support custom template delimiters
-- ✅ **Module-Based** - Perfect for modular application structure
+-  **Template Caching** - Automatic caching for production performance
+-  **Flexible Structure** - Support for layouts, components, and nested views
+-  **Separate Paths** - Templates can be in different locations
+-  **Custom Path Resolver** - Full control over path resolution
+-  **20+ Built-in Functions** - Date, math, string, and utility functions
+-  **Custom Functions** - Add your own template functions
+-  **Global Data** - Shared data across all templates
+-  **Thread-Safe** - Concurrent rendering with sync.RWMutex
+-  **Hot Reload** - Disable cache for development
+-  **Custom Delimiters** - Support custom template delimiters
+-  **Module-Based** - Perfect for modular application structure
 
 ---
 
@@ -1054,9 +1054,97 @@ func TestHomeTemplate(t *testing.T) {
 
 ---
 
-## License
+## Extending
 
-MIT
+You can create custom template functions and path resolvers to extend the view package functionality.
+
+### Custom Template Functions
+
+```go
+// Add custom functions when creating view
+v := view.New(view.Config{
+    ViewsPath: "./templates",
+    FuncMap: template.FuncMap{
+        "myFunction": func(s string) string {
+            // Your logic
+            return strings.ToUpper(s)
+        },
+    },
+})
+
+// Or add dynamically
+v.AddFunc("formatPrice", func(price float64) string {
+    return fmt.Sprintf("$%.2f", price)
+})
+```
+
+### Custom Path Resolver
+
+```go
+v := view.New(view.Config{
+    PathResolver: func(templateType, name string) string {
+        switch templateType {
+        case "layout":
+            return filepath.Join("./custom/layouts", name+".html")
+        case "component":
+            return filepath.Join("./custom/components", name+".html")
+        case "view":
+            // Custom logic for views
+            return filepath.Join("./custom/views", name+".html")
+        default:
+            return name + ".html"
+        }
+    },
+})
+```
+
+### Example: Custom Markdown Function
+
+```go
+import "github.com/russross/blackfriday/v2"
+
+v := view.New(view.Config{
+    ViewsPath: "./templates",
+})
+
+v.AddFunc("markdown", func(content string) template.HTML {
+    output := blackfriday.Run([]byte(content))
+    return template.HTML(output)
+})
+```
+
+**Template usage:**
+```html
+<div class="content">
+    {{ markdown .ArticleContent }}
+</div>
+```
+
+### Example: Custom Date Formatting
+
+```go
+v.AddFunc("formatDateTime", func(t time.Time, format string) string {
+    layouts := map[string]string{
+        "short": "2006-01-02",
+        "long":  "January 2, 2006",
+        "time":  "15:04:05",
+        "full":  "2006-01-02 15:04:05",
+    }
+    
+    layout, ok := layouts[format]
+    if !ok {
+        layout = format
+    }
+    
+    return t.Format(layout)
+})
+```
+
+**Template usage:**
+```html
+<p>Date: {{ formatDateTime .CreatedAt "short" }}</p>
+<p>Full: {{ formatDateTime .CreatedAt "full" }}</p>
+```
 
 ---
 
@@ -1077,4 +1165,4 @@ The view package provides a **powerful template rendering engine** for Go:
 - Hot reload for development
 - Production-ready caching
 
-Now you can easily render beautiful HTML templates in your Go applications! 🚀
+Now you can easily render beautiful HTML templates in your Go applications! 

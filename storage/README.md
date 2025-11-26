@@ -31,16 +31,16 @@ The storage package provides a **unified interface** for file operations, whethe
 
 ## Features
 
-- ✅ **Unified Interface** - Same code works for local and S3 storage
-- ✅ **Multiple Implementations** - Local filesystem and AWS S3
-- ✅ **File Operations** - Upload, download, delete, copy, move
-- ✅ **Directory Operations** - List files and directories
-- ✅ **Visibility Control** - Public or private files
-- ✅ **Temporary URLs** - Generate time-limited access URLs (S3)
-- ✅ **MIME Type Detection** - Automatic content type detection
-- ✅ **Human-Readable Sizes** - File sizes in KB, MB, GB format
-- ✅ **Thread-Safe** - Safe for concurrent use
-- ✅ **Easy Configuration** - Environment variables or code
+-  **Unified Interface** - Same code works for local and S3 storage
+-  **Multiple Implementations** - Local filesystem and AWS S3
+-  **File Operations** - Upload, download, delete, copy, move
+-  **Directory Operations** - List files and directories
+-  **Visibility Control** - Public or private files
+-  **Temporary URLs** - Generate time-limited access URLs (S3)
+-  **MIME Type Detection** - Automatic content type detection
+-  **Human-Readable Sizes** - File sizes in KB, MB, GB format
+-  **Thread-Safe** - Safe for concurrent use
+-  **Easy Configuration** - Environment variables or code
 
 ---
 
@@ -308,12 +308,12 @@ if err != nil {
 
 ### Features
 
-- ✅ Automatic directory creation
-- ✅ Configurable file/directory permissions
-- ✅ MIME type detection from file extension
-- ✅ Content-based MIME detection fallback
-- ✅ Human-readable file sizes
-- ✅ URL generation for file access
+-  Automatic directory creation
+-  Configurable file/directory permissions
+-  MIME type detection from file extension
+-  Content-based MIME detection fallback
+-  Human-readable file sizes
+-  URL generation for file access
 
 ### Example: Upload File
 
@@ -375,12 +375,12 @@ store := storage.NewS3Storage(client, cfg)
 
 ### Features
 
-- ✅ AWS S3 and compatible services
-- ✅ Public/Private ACL support
-- ✅ Presigned URLs for temporary access
-- ✅ Automatic ACL detection
-- ✅ Efficient copy/move operations
-- ✅ Directory listing with delimiters
+-  AWS S3 and compatible services
+-  Public/Private ACL support
+-  Presigned URLs for temporary access
+-  Automatic ACL detection
+-  Efficient copy/move operations
+-  Directory listing with delimiters
 
 ### Example: Temporary URLs
 
@@ -936,9 +936,94 @@ Solution: Check URL generation
 
 ---
 
-## License
+## Extending
 
-MIT
+You can create custom storage providers by implementing the Storage interface.
+
+### Custom Storage Implementation
+
+```go
+type MyCustomStorage struct {
+    // Your fields
+}
+
+func (s *MyCustomStorage) Upload(ctx context.Context, input UploadInput) (*UploadOutput, error) {
+    // Your implementation
+    return &UploadOutput{}, nil
+}
+
+func (s *MyCustomStorage) Delete(ctx context.Context, path string) error {
+    // Your implementation
+    return nil
+}
+
+func (s *MyCustomStorage) Copy(ctx context.Context, sourcePath, destinationPath string) error {
+    // Your implementation
+    return nil
+}
+
+func (s *MyCustomStorage) Move(ctx context.Context, sourcePath, destinationPath string) error {
+    // Your implementation
+    return nil
+}
+
+func (s *MyCustomStorage) Get(ctx context.Context, path string) ([]byte, error) {
+    // Your implementation
+    return []byte{}, nil
+}
+
+func (s *MyCustomStorage) File(ctx context.Context, path string, expiryTempUrl *time.Duration) (*FileStorage, error) {
+    // Your implementation
+    return &FileStorage{}, nil
+}
+
+func (s *MyCustomStorage) Files(ctx context.Context, dir string, expiryTempUrl *time.Duration) ([]FileStorage, error) {
+    // Your implementation
+    return []FileStorage{}, nil
+}
+
+func (s *MyCustomStorage) Directories(ctx context.Context, dir string) ([]string, error) {
+    // Your implementation
+    return []string{}, nil
+}
+
+func (s *MyCustomStorage) Exists(ctx context.Context, path string) (bool, error) {
+    // Your implementation
+    return false, nil
+}
+```
+
+### Example: FTP Storage
+
+```go
+type FTPStorage struct {
+    host     string
+    username string
+    password string
+}
+
+func NewFTPStorage(host, username, password string) Storage {
+    return &FTPStorage{
+        host:     host,
+        username: username,
+        password: password,
+    }
+}
+
+func (s *FTPStorage) Upload(ctx context.Context, input UploadInput) (*UploadOutput, error) {
+    // Connect to FTP server
+    // Upload file
+    // Return output
+    return &UploadOutput{
+        Name:      input.FileName,
+        Path:      input.FileName,
+        Size:      0,
+        SizeHuman: "0 B",
+    }, nil
+}
+
+// Implement other methods...
+```
 
 ---
 
@@ -958,4 +1043,4 @@ The storage package provides a **simple, unified interface** for file storage:
 - Automatic MIME type detection
 - Human-readable file sizes
 
-Now you can easily manage file storage in your Go applications! 🚀
+Now you can easily manage file storage in your Go applications! 

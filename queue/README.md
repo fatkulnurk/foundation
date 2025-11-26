@@ -53,11 +53,11 @@ If you do everything immediately, your website becomes **slow** and users have t
 3. Users don't have to wait
 
 **Real-world benefits:**
-- ✅ **Faster response times** - Users don't wait for heavy tasks
-- ✅ **Better reliability** - Failed tasks are automatically retried
-- ✅ **Scalability** - Process multiple tasks in parallel
-- ✅ **Scheduling** - Run tasks at specific times
-- ✅ **Priority handling** - Important tasks processed first
+-  **Faster response times** - Users don't wait for heavy tasks
+-  **Better reliability** - Failed tasks are automatically retried
+-  **Scalability** - Process multiple tasks in parallel
+-  **Scheduling** - Run tasks at specific times
+-  **Priority handling** - Important tasks processed first
 
 ---
 
@@ -87,16 +87,16 @@ Code that explains **how to process** a task.
 
 ## Features
 
-- ✅ **Abstracted Interface** - Not dependent on any specific queue library
-- ✅ **Queue & Worker** - Producer and consumer pattern
-- ✅ **Task Scheduling** - Schedule tasks to be processed later
-- ✅ **Priority Queues** - Multiple queues with different priorities
-- ✅ **Retry Mechanism** - Automatic retry for failed tasks
-- ✅ **Unique Tasks** - Prevent duplicate tasks
-- ✅ **Timeout & Deadline** - Control task execution time
-- ✅ **Graceful Shutdown** - Safe worker shutdown
-- ✅ **Type-Safe** - Full Go type safety
-- ✅ **Middleware Support** - Extensible with middleware functions
+-  **Abstracted Interface** - Not dependent on any specific queue library
+-  **Queue & Worker** - Producer and consumer pattern
+-  **Task Scheduling** - Schedule tasks to be processed later
+-  **Priority Queues** - Multiple queues with different priorities
+-  **Retry Mechanism** - Automatic retry for failed tasks
+-  **Unique Tasks** - Prevent duplicate tasks
+-  **Timeout & Deadline** - Control task execution time
+-  **Graceful Shutdown** - Safe worker shutdown
+-  **Type-Safe** - Full Go type safety
+-  **Middleware Support** - Extensible with middleware functions
 
 ---
 
@@ -992,9 +992,9 @@ go run main.go worker
 === Example: Worker Processing Tasks ===
 
 Registering handlers for each task type...
-✓ All handlers registered successfully
+ All handlers registered successfully
 
-🚀 Starting worker...
+ Starting worker...
 Press Ctrl+C to stop
 ```
 
@@ -1010,10 +1010,10 @@ go run main.go
 === Example: Enqueuing Tasks ===
 
 1. Enqueuing simple email task...
-✓ Task enqueued successfully: ID=abc123
+ Task enqueued successfully: ID=abc123
 
 2. Enqueuing email with retry and timeout...
-✓ Task enqueued: ID=def456 (critical queue, 3 retries, 30s timeout)
+ Task enqueued: ID=def456 (critical queue, 3 retries, 30s timeout)
 
 ... and so on
 ```
@@ -1021,13 +1021,13 @@ go run main.go
 ### Terminal 1: See Worker Processing
 
 ```
-📋 Processing task ID: abc123
+ Processing task ID: abc123
 📧 Sending email to user@example.com: Welcome!
-✓ Email sent successfully to user@example.com
+ Email sent successfully to user@example.com
 
-📋 Task ID: def456
+ Task ID: def456
 🔔 Sending notification to user user123: Your order has been shipped!
-✓ Notification sent successfully
+ Notification sent successfully
 
 ... and so on
 ```
@@ -1142,9 +1142,82 @@ If you want to switch from asynq to another library:
 
 ---
 
-## License
+## Extending
 
-MIT
+You can create custom queue implementations by implementing the Queue and Worker interfaces.
+
+### Custom Queue Implementation
+
+```go
+type MyCustomQueue struct {
+    // Your fields
+}
+
+func (q *MyCustomQueue) Enqueue(ctx context.Context, taskType string, payload any, opts ...Option) (*OutputEnqueue, error) {
+    // Your implementation
+    return &OutputEnqueue{}, nil
+}
+
+func (q *MyCustomQueue) GetTaskInfo(ctx context.Context, taskID string) (*TaskInfo, error) {
+    // Your implementation
+    return &TaskInfo{}, nil
+}
+
+// Implement other Queue interface methods...
+```
+
+### Custom Worker Implementation
+
+```go
+type MyCustomWorker struct {
+    // Your fields
+}
+
+func (w *MyCustomWorker) RegisterHandler(taskType string, handler Handler) {
+    // Your implementation
+}
+
+func (w *MyCustomWorker) Use(middleware ...MiddlewareFunc) {
+    // Your implementation
+}
+
+func (w *MyCustomWorker) Start() error {
+    // Your implementation
+    return nil
+}
+
+func (w *MyCustomWorker) Stop() {
+    // Your implementation
+}
+
+// Implement other Worker interface methods...
+```
+
+### Custom Middleware
+
+```go
+func MyCustomMiddleware(next Handler) Handler {
+    return func(ctx context.Context, task *Task) error {
+        // Before task execution
+        log.Printf("Starting task: %s", task.Type)
+        
+        // Execute task
+        err := next(ctx, task)
+        
+        // After task execution
+        if err != nil {
+            log.Printf("Task failed: %s", task.Type)
+        } else {
+            log.Printf("Task completed: %s", task.Type)
+        }
+        
+        return err
+    }
+}
+
+// Use it
+worker.Use(MyCustomMiddleware)
+```
 
 ---
 
@@ -1164,4 +1237,4 @@ The queue package is a **task queue system** that:
 - Redis = Storage for the basket
 - Middleware = Extra features (fragrance, fabric softener, etc.)
 
-Now you can use the queue package for your own applications! 🚀
+Now you can use the queue package for your own applications! 

@@ -28,10 +28,10 @@ go run main.go struct
 === Struct Validation Example ===
 
 1. Validating valid user...
-✅ All validations passed!
+ All validations passed!
 
 2. Validating invalid user...
-❌ Validation failed:
+ Validation failed:
   - name: must be at least 3 characters
   - email: format email tidak valid
   - username: must be between 6.00 and 16.00
@@ -41,7 +41,7 @@ go run main.go struct
   - url_field: is not a valid URL
 
 3. Validating partially filled user...
-❌ Validation failed:
+ Validation failed:
   - username: can't be empty
   - password: can't be empty
   - phone: can't be empty
@@ -108,14 +108,14 @@ go run main.go all
 === Struct Validation Example ===
 
 1. Validating valid user...
-✅ All validations passed!
+ All validations passed!
 ```
 
 ### Struct Validation (Invalid Data)
 
 ```
 2. Validating invalid user...
-❌ Validation failed:
+ Validation failed:
   - name: must be at least 3 characters
   - email: format email tidak valid
   - username: must be between 6.00 and 16.00
@@ -131,16 +131,16 @@ go run main.go all
 === Single Field Validation Example ===
 
 1. Validating email addresses...
-  ✅ 'valid@example.com': Valid
-  ❌ 'invalid': format email tidak valid
-  ✅ 'test@test.com': Valid
-  ❌ 'no-at-sign': format email tidak valid
+   'valid@example.com': Valid
+   'invalid': format email tidak valid
+   'test@test.com': Valid
+   'no-at-sign': format email tidak valid
 
 2. Validating ages...
-  ✅ Age 25: Valid
-  ❌ Age 15: must be at least 18.00
-  ✅ Age 100: Valid
-  ❌ Age 150: must be at most 100.00
+   Age 25: Valid
+   Age 15: must be at least 18.00
+   Age 100: Valid
+   Age 150: must be at most 100.00
 ```
 
 ### Custom Rules
@@ -149,10 +149,10 @@ go run main.go all
 === Custom Rule Example ===
 
 1. Validating with custom rules (valid)...
-✅ All custom validations passed!
+ All custom validations passed!
 
 2. Validating with custom rules (invalid)...
-❌ Validation failed:
+ Validation failed:
   - order_id: must start with 'ORD-'
   - status: must be one of: [pending processing completed cancelled]
   - priority: must be one of: [low medium high urgent]
@@ -409,4 +409,4 @@ See the main [README.md](../README.md) for:
 
 ---
 
-Happy validating! 🚀
+Happy validating! 

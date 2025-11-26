@@ -30,15 +30,15 @@ go run main.go basic
 
 Submitting 10 jobs to pool with 3 workers...
 
-📋 Job 1: Starting
-📋 Job 2: Starting
-📋 Job 3: Starting
-✅ Job 1: Completed
-📋 Job 4: Starting
-✅ Job 2: Completed
-📋 Job 5: Starting
+ Job 1: Starting
+ Job 2: Starting
+ Job 3: Starting
+ Job 1: Completed
+ Job 4: Starting
+ Job 2: Completed
+ Job 5: Starting
 ...
-✅ All jobs completed!
+ All jobs completed!
 ```
 
 ### 2. Priority Queue Example
@@ -62,12 +62,12 @@ go run main.go priority
 Submitting jobs with different priorities...
 Expected order: High-1, High-2, Normal-1, Normal-2, Low-1, Low-2
 
-🔄 Processing: High-1
-🔄 Processing: High-2
-✅ Completed: High-1
-🔄 Processing: Normal-1
-✅ Completed: High-2
-🔄 Processing: Normal-2
+ Processing: High-1
+ Processing: High-2
+ Completed: High-1
+ Processing: Normal-1
+ Completed: High-2
+ Processing: Normal-2
 ...
 ```
 
@@ -90,20 +90,20 @@ go run main.go retry
 === Retry Mechanism Example ===
 
 Job 1: Will succeed immediately
-  📋 Attempting job 1...
-  ✅ Job 1 succeeded!
-[Worker 0] ✅ Job success (Attempt 1)
+   Attempting job 1...
+   Job 1 succeeded!
+[Worker 0]  Job success (Attempt 1)
 
 Job 2: Will fail 2 times, then succeed
-  📋 Attempting job 2 (attempt 1)...
-  ❌ Job 2 failed on attempt 1
-[Worker 0] ❌ Job failed (Attempt 1): simulated failure
-  📋 Attempting job 2 (attempt 2)...
-  ❌ Job 2 failed on attempt 2
-[Worker 0] ❌ Job failed (Attempt 2): simulated failure
-  📋 Attempting job 2 (attempt 3)...
-  ✅ Job 2 succeeded!
-[Worker 0] ✅ Job success (Attempt 3)
+   Attempting job 2 (attempt 1)...
+   Job 2 failed on attempt 1
+[Worker 0]  Job failed (Attempt 1): simulated failure
+   Attempting job 2 (attempt 2)...
+   Job 2 failed on attempt 2
+[Worker 0]  Job failed (Attempt 2): simulated failure
+   Attempting job 2 (attempt 3)...
+   Job 2 succeeded!
+[Worker 0]  Job success (Attempt 3)
 ...
 ```
 
@@ -125,14 +125,14 @@ go run main.go timeout
 === Timeout Example ===
 
 Job 1: Will complete before timeout (2s task, 5s timeout)
-  📋 Starting job 1...
-  ✅ Job 1 completed successfully
-[Worker 0] ✅ Job success (Attempt 1)
+   Starting job 1...
+   Job 1 completed successfully
+[Worker 0]  Job success (Attempt 1)
 
 Job 2: Will timeout (10s task, 2s timeout)
-  📋 Starting job 2...
-  ⏱️  Job 2 timed out (as expected)
-[Worker 0] ❌ Job failed (Attempt 1): context deadline exceeded
+   Starting job 2...
+    Job 2 timed out (as expected)
+[Worker 0]  Job failed (Attempt 1): context deadline exceeded
 ...
 ```
 
@@ -157,20 +157,20 @@ go run main.go scaling
 
 Starting with 2 workers...
 Submitting 5 jobs...
-  📋 Job 1 processing (2 workers)
-  📋 Job 2 processing (2 workers)
-  ✅ Job 1 completed
-  📋 Job 3 processing (2 workers)
+   Job 1 processing (2 workers)
+   Job 2 processing (2 workers)
+   Job 1 completed
+   Job 3 processing (2 workers)
 ...
 
-⬆️  Scaling up to 5 workers...
-⬆️ Scaled up to 5 workers
+  Scaling up to 5 workers...
+ Scaled up to 5 workers
 Submitting 5 more jobs...
-  📋 Job 6 processing (5 workers)
-  📋 Job 7 processing (5 workers)
-  📋 Job 8 processing (5 workers)
-  📋 Job 9 processing (5 workers)
-  📋 Job 10 processing (5 workers)
+   Job 6 processing (5 workers)
+   Job 7 processing (5 workers)
+   Job 8 processing (5 workers)
+   Job 9 processing (5 workers)
+   Job 10 processing (5 workers)
 ...
 ```
 
@@ -192,18 +192,18 @@ go run main.go panic
 === Panic Recovery Example ===
 
 Job 1: Will panic (worker should recover)
-  📋 Job 1 starting...
-  💥 Job 1 about to panic!
+   Job 1 starting...
+   Job 1 about to panic!
 [Worker 0] PANIC: something went terribly wrong!
 [stack trace...]
-[Worker 0] ❌ Job failed (Attempt 1): panic: something went terribly wrong!
+[Worker 0]  Job failed (Attempt 1): panic: something went terribly wrong!
 ...
 
 Job 2: Normal job (to verify worker recovered)
-  📋 Job 2 starting...
-  ✅ Job 2 completed successfully!
-  ✅ Worker is still alive after panic!
-[Worker 1] ✅ Job success (Attempt 1)
+   Job 2 starting...
+   Job 2 completed successfully!
+   Worker is still alive after panic!
+[Worker 1]  Job success (Attempt 1)
 ```
 
 ## Code Examples
@@ -451,7 +451,7 @@ func runMyExample() {
     })
     
     time.Sleep(2 * time.Second)
-    fmt.Println("✅ My example completed!")
+    fmt.Println(" My example completed!")
 }
 ```
 
@@ -536,4 +536,4 @@ See the main [README.md](../README.md) for:
 
 ---
 
-Happy concurrent processing! 🚀
+Happy concurrent processing! 

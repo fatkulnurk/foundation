@@ -86,16 +86,16 @@ go run main.go operations
 === Local Storage Example ===
 
 1. Uploading text file...
-✓ Uploaded: documents/hello.txt (22 B)
+ Uploaded: documents/hello.txt (22 B)
 
 2. Uploading JSON file...
-✓ Uploaded: data/user.json (45 B)
+ Uploaded: data/user.json (45 B)
 
 3. Checking if file exists...
-✓ File exists!
+ File exists!
 
 4. Getting file information...
-✓ File Info:
+ File Info:
   - Name: hello.txt
   - Size: 22 B
   - Type: text/plain
@@ -103,9 +103,9 @@ go run main.go operations
   - Modified: 2024-11-26 19:45:30
 
 5. Reading file content...
-✓ Content: Hello, Local Storage!
+ Content: Hello, Local Storage!
 
-✅ Local storage example completed!
+ Local storage example completed!
 Files are stored in: ./storage/
 ```
 
@@ -115,7 +115,7 @@ Files are stored in: ./storage/
 === List Files Example ===
 
 Creating test files...
-✓ Test files created
+ Test files created
 
 1. Files in photos/:
   - image1.jpg (12 B)
@@ -128,7 +128,7 @@ Creating test files...
 3. Subdirectories in photos/:
   - photos/vacation/
 
-✅ List example completed!
+ List example completed!
 ```
 
 ## Using MinIO (S3-Compatible)
@@ -185,7 +185,7 @@ func runMyExample(ctx context.Context) {
         Visibility: storage.VisibilityPublic,
     })
     
-    fmt.Println("✅ My example completed!")
+    fmt.Println(" My example completed!")
 }
 ```
 
@@ -261,4 +261,4 @@ See the main [README.md](../README.md) for:
 
 ---
 
-Happy coding! 🚀
+Happy coding! 

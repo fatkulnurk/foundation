@@ -504,6 +504,168 @@ go get github.com/fatkulnurk/foundation/httprouter
 
 None - uses only Go standard library (requires Go 1.22+ for path parameters).
 
+---
+
+## Extending
+
+You can extend the HTTP router by creating custom middleware and response helpers.
+
+### Custom Middleware
+
+```go
+// Timing middleware
+func TimingMiddleware(next http.Handler) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        start := time.Now()
+        
+        // Call next handler
+        next.ServeHTTP(w, r)
+        
+        // Log timing
+        duration := time.Since(start)
+        log.Printf("[%s] %s - %v", r.Method, r.URL.Path, duration)
+    })
+}
+
+// Use it
+r.Use(TimingMiddleware)
+```
+
+### Custom Response Writer
+
+```go
+type ResponseWriter struct {
+    http.ResponseWriter
+    statusCode int
+    bytes      int
+}
+
+func NewResponseWriter(w http.ResponseWriter) *ResponseWriter {
+    return &ResponseWriter{
+        ResponseWriter: w,
+        statusCode:     http.StatusOK,
+    }
+}
+
+func (rw *ResponseWriter) WriteHeader(code int) {
+    rw.statusCode = code
+    rw.ResponseWriter.WriteHeader(code)
+}
+
+func (rw *ResponseWriter) Write(b []byte) (int, error) {
+    n, err := rw.ResponseWriter.Write(b)
+    rw.bytes += n
+    return n, err
+}
+
+// Logging middleware using custom response writer
+func LoggingMiddleware(next http.Handler) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        rw := NewResponseWriter(w)
+        start := time.Now()
+        
+        next.ServeHTTP(rw, r)
+        
+        log.Printf("%s %s - %d (%d bytes) - %v",
+            r.Method, r.URL.Path, rw.statusCode, rw.bytes, time.Since(start))
+    })
+}
+```
+
+### Example: Request ID Middleware
+
+```go
+func RequestIDMiddleware(next http.Handler) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        requestID := r.Header.Get("X-Request-ID")
+        if requestID == "" {
+            requestID = generateRequestID()
+        }
+        
+        // Add to response header
+        w.Header().Set("X-Request-ID", requestID)
+        
+        // Add to context
+        ctx := context.WithValue(r.Context(), "request_id", requestID)
+        next.ServeHTTP(w, r.WithContext(ctx))
+    })
+}
+
+func generateRequestID() string {
+    return fmt.Sprintf("%d", time.Now().UnixNano())
+}
+```
+
+### Example: Custom Error Handler
+
+```go
+type ErrorResponse struct {
+    Error     string `json:"error"`
+    RequestID string `json:"request_id,omitempty"`
+    Timestamp string `json:"timestamp"`
+}
+
+func WriteErrorWithContext(w http.ResponseWriter, r *http.Request, status int, message string) {
+    requestID, _ := r.Context().Value("request_id").(string)
+    
+    response := ErrorResponse{
+        Error:     message,
+        RequestID: requestID,
+        Timestamp: time.Now().Format(time.RFC3339),
+    }
+    
+    httprouter.WriteJSON(w, status, response)
+}
+```
+
+### Example: Rate Limiter per IP
+
+```go
+type IPRateLimiter struct {
+    limiters map[string]*rate.Limiter
+    mu       sync.RWMutex
+    rate     rate.Limit
+    burst    int
+}
+
+func NewIPRateLimiter(r rate.Limit, b int) *IPRateLimiter {
+    return &IPRateLimiter{
+        limiters: make(map[string]*rate.Limiter),
+        rate:     r,
+        burst:    b,
+    }
+}
+
+func (i *IPRateLimiter) GetLimiter(ip string) *rate.Limiter {
+    i.mu.Lock()
+    defer i.mu.Unlock()
+    
+    limiter, exists := i.limiters[ip]
+    if !exists {
+        limiter = rate.NewLimiter(i.rate, i.burst)
+        i.limiters[ip] = limiter
+    }
+    
+    return limiter
+}
+
+func (i *IPRateLimiter) Middleware(next http.Handler) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        ip := r.RemoteAddr
+        limiter := i.GetLimiter(ip)
+        
+        if !limiter.Allow() {
+            httprouter.WriteError(w, http.StatusTooManyRequests, "Rate limit exceeded")
+            return
+        }
+        
+        next.ServeHTTP(w, r)
+    })
+}
+```
+
+---
+
 ## See Also
 
 - `example/main.go` - Complete example with all features

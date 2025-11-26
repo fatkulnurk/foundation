@@ -29,27 +29,27 @@ A **worker pool** is like having a team of workers that process jobs from a queu
 - **Retry** = Try again if the task fails
 
 **Why use a worker pool?**
-- ✅ **Control concurrency** - Limit how many tasks run at once
-- ✅ **Prevent resource exhaustion** - Don't create unlimited goroutines
-- ✅ **Priority handling** - Important tasks processed first
-- ✅ **Automatic retry** - Failed tasks are retried automatically
-- ✅ **Timeout support** - Tasks don't run forever
-- ✅ **Dynamic scaling** - Add or remove workers on the fly
+-  **Control concurrency** - Limit how many tasks run at once
+-  **Prevent resource exhaustion** - Don't create unlimited goroutines
+-  **Priority handling** - Important tasks processed first
+-  **Automatic retry** - Failed tasks are retried automatically
+-  **Timeout support** - Tasks don't run forever
+-  **Dynamic scaling** - Add or remove workers on the fly
 
 ---
 
 ## Features
 
-- ✅ **Fixed Worker Count** - Control concurrency with worker limit
-- ✅ **Priority Queue** - High, Normal, Low priority levels
-- ✅ **FIFO within Priority** - Fair processing within same priority
-- ✅ **Automatic Retry** - Configurable retry attempts with delay
-- ✅ **Timeout Support** - Per-job timeout configuration
-- ✅ **Panic Recovery** - Workers recover from panics
-- ✅ **Dynamic Scaling** - Scale workers up or down
-- ✅ **Graceful Shutdown** - Wait for running jobs to complete
-- ✅ **Thread-Safe** - Safe for concurrent use
-- ✅ **Zero Dependencies** - Only uses standard library
+-  **Fixed Worker Count** - Control concurrency with worker limit
+-  **Priority Queue** - High, Normal, Low priority levels
+-  **FIFO within Priority** - Fair processing within same priority
+-  **Automatic Retry** - Configurable retry attempts with delay
+-  **Timeout Support** - Per-job timeout configuration
+-  **Panic Recovery** - Workers recover from panics
+-  **Dynamic Scaling** - Scale workers up or down
+-  **Graceful Shutdown** - Wait for running jobs to complete
+-  **Thread-Safe** - Safe for concurrent use
+-  **Zero Dependencies** - Only uses standard library
 
 ---
 
@@ -366,9 +366,9 @@ func main() {
 
 **Output (example):**
 ```
-[Worker 0] ❌ Job failed (Attempt 1): random failure
-[Worker 0] ❌ Job failed (Attempt 2): random failure
-[Worker 0] ✅ Job success (Attempt 3)
+[Worker 0]  Job failed (Attempt 1): random failure
+[Worker 0]  Job failed (Attempt 2): random failure
+[Worker 0]  Job success (Attempt 3)
 ```
 
 ### Example 4: Timeout Handling
@@ -510,13 +510,13 @@ func main() {
 About to panic...
 [Worker 0] PANIC: something went wrong!
 [stack trace...]
-[Worker 0] ❌ Job failed (Attempt 1): panic: something went wrong!
+[Worker 0]  Job failed (Attempt 1): panic: something went wrong!
 About to panic...
 [Worker 0] PANIC: something went wrong!
-[Worker 0] ❌ Job failed (Attempt 2): panic: something went wrong!
-[Worker 0] 🔥 Job permanently failed after 3 attempts
+[Worker 0]  Job failed (Attempt 2): panic: something went wrong!
+[Worker 0]  Job permanently failed after 3 attempts
 Normal job processing
-[Worker 1] ✅ Job success (Attempt 1)
+[Worker 1]  Job success (Attempt 1)
 ```
 
 ### Example 7: HTTP Request Processing
@@ -982,9 +982,138 @@ func TestJob(t *testing.T) {
 
 ---
 
-## License
+## Extending
 
-MIT
+The worker pool is designed to be simple and focused. However, you can extend it by wrapping it or creating custom job types.
+
+### Custom Job Wrapper
+
+```go
+type CustomJob struct {
+    ID       string
+    Name     string
+    Priority workerpool.Priority
+    Task     func(ctx context.Context) error
+}
+
+func (cj CustomJob) ToWorkerPoolJob() workerpool.Job {
+    return workerpool.Job{
+        Task: func(ctx context.Context) error {
+            log.Printf("Starting custom job: %s (ID: %s)", cj.Name, cj.ID)
+            err := cj.Task(ctx)
+            if err != nil {
+                log.Printf("Custom job failed: %s", cj.Name)
+            } else {
+                log.Printf("Custom job completed: %s", cj.Name)
+            }
+            return err
+        },
+        Priority:   cj.Priority,
+        Retry:      3,
+        Timeout:    30 * time.Second,
+        RetryDelay: 2 * time.Second,
+    }
+}
+
+// Usage
+pool := workerpool.NewWorkerPool(5)
+defer pool.Stop()
+
+customJob := CustomJob{
+    ID:       "job-001",
+    Name:     "Process Data",
+    Priority: workerpool.High,
+    Task: func(ctx context.Context) error {
+        // Your task logic
+        return nil
+    },
+}
+
+pool.Submit(customJob.ToWorkerPoolJob())
+```
+
+### Job Queue Wrapper
+
+```go
+type JobQueue struct {
+    pool    *workerpool.WorkerPool
+    metrics struct {
+        submitted int
+        completed int
+        failed    int
+    }
+    mu sync.Mutex
+}
+
+func NewJobQueue(workerCount int) *JobQueue {
+    return &JobQueue{
+        pool: workerpool.NewWorkerPool(workerCount),
+    }
+}
+
+func (jq *JobQueue) Submit(task func(ctx context.Context) error, priority workerpool.Priority) error {
+    jq.mu.Lock()
+    jq.metrics.submitted++
+    jq.mu.Unlock()
+    
+    return jq.pool.Submit(workerpool.Job{
+        Task: func(ctx context.Context) error {
+            err := task(ctx)
+            
+            jq.mu.Lock()
+            if err != nil {
+                jq.metrics.failed++
+            } else {
+                jq.metrics.completed++
+            }
+            jq.mu.Unlock()
+            
+            return err
+        },
+        Priority: priority,
+        Timeout:  30 * time.Second,
+    })
+}
+
+func (jq *JobQueue) GetMetrics() (submitted, completed, failed int) {
+    jq.mu.Lock()
+    defer jq.mu.Unlock()
+    return jq.metrics.submitted, jq.metrics.completed, jq.metrics.failed
+}
+
+func (jq *JobQueue) Stop() {
+    jq.pool.Stop()
+}
+```
+
+### Example: Rate Limited Pool
+
+```go
+type RateLimitedPool struct {
+    pool    *workerpool.WorkerPool
+    limiter *rate.Limiter
+}
+
+func NewRateLimitedPool(workerCount int, rps int) *RateLimitedPool {
+    return &RateLimitedPool{
+        pool:    workerpool.NewWorkerPool(workerCount),
+        limiter: rate.NewLimiter(rate.Limit(rps), rps),
+    }
+}
+
+func (rlp *RateLimitedPool) Submit(job workerpool.Job) error {
+    // Wait for rate limiter
+    if err := rlp.limiter.Wait(context.Background()); err != nil {
+        return err
+    }
+    
+    return rlp.pool.Submit(job)
+}
+
+func (rlp *RateLimitedPool) Stop() {
+    rlp.pool.Stop()
+}
+```
 
 ---
 
@@ -1006,4 +1135,4 @@ The worker pool package provides **efficient concurrent task processing**:
 - Thread-safe for concurrent use
 - Zero external dependencies
 
-Now you can efficiently process concurrent tasks in your Go applications! 🚀
+Now you can efficiently process concurrent tasks in your Go applications! 

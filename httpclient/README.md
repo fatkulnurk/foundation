@@ -475,6 +475,124 @@ go get github.com/fatkulnurk/foundation/httpclient
 
 None - uses only Go standard library.
 
+---
+
+## Extending
+
+You can extend the HTTP client by wrapping it or creating custom request/response handlers.
+
+### Custom Request Interceptor
+
+```go
+type InterceptorClient struct {
+    client *httpclient.Client
+}
+
+func NewInterceptorClient(config httpclient.Config) *InterceptorClient {
+    return &InterceptorClient{
+        client: httpclient.New(config),
+    }
+}
+
+func (c *InterceptorClient) Get(url string) (*httpclient.Response, error) {
+    // Before request
+    log.Printf("Making GET request to: %s", url)
+    start := time.Now()
+    
+    // Execute request
+    resp, err := c.client.Get(url).Send()
+    
+    // After request
+    duration := time.Since(start)
+    log.Printf("Request completed in %v", duration)
+    
+    return resp, err
+}
+```
+
+### Custom Response Handler
+
+```go
+type CustomResponse struct {
+    *httpclient.Response
+}
+
+func (r *CustomResponse) JSONWithValidation(target interface{}) error {
+    if !r.IsSuccess() {
+        return fmt.Errorf("request failed with status %d", r.StatusCode)
+    }
+    
+    if err := r.JSON(target); err != nil {
+        return fmt.Errorf("failed to parse JSON: %w", err)
+    }
+    
+    // Custom validation logic
+    return validate(target)
+}
+```
+
+### Example: Authenticated Client
+
+```go
+type AuthClient struct {
+    client *httpclient.Client
+    token  string
+}
+
+func NewAuthClient(baseURL, token string) *AuthClient {
+    return &AuthClient{
+        client: httpclient.New(httpclient.Config{
+            BaseURL: baseURL,
+            Timeout: 30 * time.Second,
+        }),
+        token: token,
+    }
+}
+
+func (c *AuthClient) Get(url string) (*httpclient.Response, error) {
+    return c.client.Get(url).
+        WithHeader("Authorization", "Bearer "+c.token).
+        Send()
+}
+
+func (c *AuthClient) Post(url string, data interface{}) (*httpclient.Response, error) {
+    return c.client.Post(url).
+        WithHeader("Authorization", "Bearer "+c.token).
+        WithJSON(data).
+        Send()
+}
+```
+
+### Example: Retry with Exponential Backoff
+
+```go
+type RetryClient struct {
+    client     *httpclient.Client
+    maxRetries int
+}
+
+func (c *RetryClient) GetWithBackoff(url string) (*httpclient.Response, error) {
+    var resp *httpclient.Response
+    var err error
+    
+    for i := 0; i < c.maxRetries; i++ {
+        resp, err = c.client.Get(url).Send()
+        
+        if err == nil && resp.IsSuccess() {
+            return resp, nil
+        }
+        
+        // Exponential backoff
+        waitTime := time.Duration(math.Pow(2, float64(i))) * time.Second
+        time.Sleep(waitTime)
+    }
+    
+    return resp, err
+}
+```
+
+---
+
 ## See Also
 
 - `example/main.go` - Complete examples with real API calls
