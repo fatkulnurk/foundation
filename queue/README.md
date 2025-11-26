@@ -108,7 +108,7 @@ go get github.com/fatkulnurk/foundation/queue
 
 **Dependencies:**
 - Redis server (for storing the queue)
-- Go 1.19 or higher
+- Go 1.25 or higher
 
 ---
 
