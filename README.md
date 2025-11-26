@@ -1,7 +1,6 @@
 # Foundation Packages
 
-A collection of reusable Go packages for building modern web applications.
-
+A collection of reusable Go packages for building modern web applications. These packages provide common functionality with clean interfaces, making it easy to build scalable and maintainable applications.
 ## Available Packages
 
 | Package | Description |
@@ -24,6 +23,12 @@ A collection of reusable Go packages for building modern web applications.
 
 ## Installation
 
+Install all packages:
+```bash
+go get github.com/fatkulnurk/foundation
+```
+
+Or install specific packages:
 ```bash
 # Install specific package
 go get github.com/fatkulnurk/foundation/cache
