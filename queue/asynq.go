@@ -234,41 +234,43 @@ func (w *AsynqWorker) GetTaskInfo(ctx context.Context, taskID string) (*TaskInfo
 
 // toAsynqOptions converts our internal options to asynq options
 func toAsynqOptions(opts ...Option) []asynq.Option {
-	o := &options{}
+	optMap := make(map[string]any)
 	for _, opt := range opts {
-		opt(o)
+		opt(optMap)
 	}
 
 	var aOpts []asynq.Option
-	if o.maxRetry > 0 {
-		aOpts = append(aOpts, asynq.MaxRetry(o.maxRetry))
+
+	if v, ok := optMap[OptMaxRetry].(int); ok && v > 0 {
+		aOpts = append(aOpts, asynq.MaxRetry(v))
 	}
-	if o.queue != "" {
-		aOpts = append(aOpts, asynq.Queue(o.queue))
+	if v, ok := optMap[OptQueue].(string); ok && v != "" {
+		aOpts = append(aOpts, asynq.Queue(v))
 	}
-	if o.timeout > 0 {
-		aOpts = append(aOpts, asynq.Timeout(o.timeout))
+	if v, ok := optMap[OptTimeout].(time.Duration); ok && v > 0 {
+		aOpts = append(aOpts, asynq.Timeout(v))
 	}
-	if !o.deadline.IsZero() {
-		aOpts = append(aOpts, asynq.Deadline(o.deadline))
+	if v, ok := optMap[OptDeadline].(time.Time); ok && !v.IsZero() {
+		aOpts = append(aOpts, asynq.Deadline(v))
 	}
-	if o.unique > 0 {
-		aOpts = append(aOpts, asynq.Unique(o.unique))
+	if v, ok := optMap[OptUnique].(time.Duration); ok && v > 0 {
+		aOpts = append(aOpts, asynq.Unique(v))
 	}
-	if !o.processAt.IsZero() {
-		aOpts = append(aOpts, asynq.ProcessAt(o.processAt))
+	if v, ok := optMap[OptProcessAt].(time.Time); ok && !v.IsZero() {
+		aOpts = append(aOpts, asynq.ProcessAt(v))
 	}
-	if o.processIn > 0 {
-		aOpts = append(aOpts, asynq.ProcessIn(o.processIn))
+	if v, ok := optMap[OptProcessIn].(time.Duration); ok && v > 0 {
+		aOpts = append(aOpts, asynq.ProcessIn(v))
 	}
-	if o.taskID != "" {
-		aOpts = append(aOpts, asynq.TaskID(o.taskID))
+	if v, ok := optMap[OptTaskID].(string); ok && v != "" {
+		aOpts = append(aOpts, asynq.TaskID(v))
 	}
-	if o.retention > 0 {
-		aOpts = append(aOpts, asynq.Retention(o.retention))
+	if v, ok := optMap[OptRetention].(time.Duration); ok && v > 0 {
+		aOpts = append(aOpts, asynq.Retention(v))
 	}
-	if o.group != "" {
-		aOpts = append(aOpts, asynq.Group(o.group))
+	if v, ok := optMap[OptGroup].(string); ok && v != "" {
+		aOpts = append(aOpts, asynq.Group(v))
 	}
+
 	return aOpts
 }

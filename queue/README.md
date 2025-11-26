@@ -211,6 +211,38 @@ type Config struct {
 
 ## Task Options
 
+The queue package uses a **key-value pattern** for options, providing flexibility and extensibility.
+
+### Option Pattern
+
+Options are functions that accept `map[string]any` and set key-value pairs:
+
+```go
+type Option func(map[string]any)
+
+// Option keys (constants)
+const (
+    OptMaxRetry  = "max_retry"
+    OptQueue     = "queue"
+    OptTimeout   = "timeout"
+    OptDeadline  = "deadline"
+    OptUnique    = "unique"
+    OptProcessAt = "process_at"
+    OptProcessIn = "process_in"
+    OptTaskID    = "task_id"
+    OptRetention = "retention"
+    OptGroup     = "group"
+)
+```
+
+**Benefits:**
+- ✅ **Flexible** - Easy to add new options without breaking changes
+- ✅ **Type-safe** - Each option function enforces its type
+- ✅ **Extensible** - Can add custom options easily
+- ✅ **Clean API** - Simple function calls
+
+### Available Options
+
 ### MaxRetry
 ```go
 queue.Enqueue(ctx, "task", payload, queue.MaxRetry(3))
