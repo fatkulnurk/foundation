@@ -2,6 +2,24 @@
 
 Module for building HTTP APIs with routing, middleware, and grouping support.
 
+## Table of Contents
+
+- [What is HTTP Router?](#what-is-http-router)
+- [Module Contents](#module-contents)
+- [How to Use](#how-to-use)
+- [Response Helpers](#response-helpers)
+- [Built-in Middleware](#built-in-middleware)
+- [Real-World Example](#real-world-example)
+- [Best Practices](#best-practices)
+- [Common Patterns](#common-patterns)
+- [Testing](#testing)
+- [Installation](#installation)
+- [Dependencies](#dependencies)
+- [Extending](#extending)
+- [See Also](#see-also)
+
+---
+
 ## What is HTTP Router?
 
 HTTP Router is a lightweight wrapper around Go's standard `net/http` ServeMux (Go 1.22+) that makes it easier to build web applications and APIs. It provides a clean API for defining routes, middleware, and route groups.

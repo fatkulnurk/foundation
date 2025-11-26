@@ -4,6 +4,15 @@ The `mailer` package provides a flexible and extensible email sending solution f
 
 > **Note:**  This package is still under development and may undergo API changes.
 
+## Table of Contents
+
+- [Features](#features)
+- [Usage](#usage)
+- [Implementation Details](#implementation-details)
+- [Extending](#extending)
+
+---
+
 ## Features
 
 - Multiple email delivery providers:

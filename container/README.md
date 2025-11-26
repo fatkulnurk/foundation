@@ -2,6 +2,24 @@
 
 Module for managing application services and dependencies in one place.
 
+## Table of Contents
+
+- [What is Container?](#what-is-container)
+- [Module Contents](#module-contents)
+- [How to Use](#how-to-use)
+- [Real-World Example](#real-world-example)
+- [Get vs MustGet](#get-vs-mustget)
+- [Thread Safety](#thread-safety)
+- [Testing](#testing)
+- [Best Practices](#best-practices)
+- [Common Patterns](#common-patterns)
+- [Installation](#installation)
+- [Dependencies](#dependencies)
+- [Extending](#extending)
+- [See Also](#see-also)
+
+---
+
 ## What is Container?
 
 Container is like a storage box where you keep all your application's services (database, logger, cache, etc.). Instead of creating these services everywhere, you register them once in the container and retrieve them when needed.

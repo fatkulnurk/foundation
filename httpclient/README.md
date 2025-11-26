@@ -2,6 +2,23 @@
 
 Module for making HTTP requests with a clean and fluent API.
 
+## Table of Contents
+
+- [What is HTTP Client?](#what-is-http-client)
+- [Module Contents](#module-contents)
+- [How to Use](#how-to-use)
+- [Configuration Options](#configuration-options)
+- [Response Handling](#response-handling)
+- [Real-World Examples](#real-world-examples)
+- [Best Practices](#best-practices)
+- [Common Patterns](#common-patterns)
+- [Installation](#installation)
+- [Dependencies](#dependencies)
+- [Extending](#extending)
+- [See Also](#see-also)
+
+---
+
 ## What is HTTP Client?
 
 HTTP Client is a wrapper around Go's standard `net/http` that makes it easier to make HTTP requests. Think of it like a simplified way to talk to APIs and web services without writing repetitive code.

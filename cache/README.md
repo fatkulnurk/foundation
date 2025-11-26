@@ -2,6 +2,19 @@
 
 Module for storing temporary data to make your application faster.
 
+## Table of Contents
+
+- [What is Cache?](#what-is-cache)
+- [Module Contents](#module-contents)
+- [When to Use Redis vs Local?](#when-to-use-redis-vs-local)
+- [Important Features](#important-features)
+- [Installation](#installation)
+- [Dependencies](#dependencies)
+- [Extending](#extending)
+- [See Also](#see-also)
+
+---
+
 ## What is Cache?
 
 Cache is a temporary data storage. Think of it like a notepad on your desk - you keep frequently used information there so you don't have to walk to the filing cabinet every time you need the same data.
