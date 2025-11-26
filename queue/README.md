@@ -109,7 +109,7 @@ type Worker interface {
     Stop()
     Register(taskType string, handler Handler) error
     RegisterWithMiddleware(taskType string, handler Handler, middleware ...MiddlewareFunc) error
-    GetTaskIDFromContext(ctx context.Context) (string, bool)
+    GetTaskID(ctx context.Context) (string, bool)
     GetTaskInfo(ctx context.Context, taskID string) (*TaskInfo, error)
 }
 ```
@@ -130,12 +130,12 @@ Middleware allows you to wrap handlers with additional functionality like loggin
 
 ## Worker Methods
 
-### GetTaskIDFromContext
+### GetTaskID
 
 Retrieves the task ID from the context inside a handler function. This is a method of the Worker interface.
 
 ```go
-func (w Worker) GetTaskIDFromContext(ctx context.Context) (string, bool)
+func (w Worker) GetTaskID(ctx context.Context) (string, bool)
 ```
 
 **Usage:**
@@ -144,7 +144,7 @@ w := queue.NewWorker(cfg, redisClient)
 
 w.Register("email:send", func(ctx context.Context, payload []byte) error {
     // Get task ID from context using worker instance
-    taskID, ok := w.GetTaskIDFromContext(ctx)
+    taskID, ok := w.GetTaskID(ctx)
     if ok {
         log.Printf("Processing task: %s", taskID)
     }
@@ -168,7 +168,7 @@ w := queue.NewWorker(cfg, redisClient)
 
 w.Register("email:send", func(ctx context.Context, payload []byte) error {
     // Get task ID from context
-    taskID, ok := w.GetTaskIDFromContext(ctx)
+    taskID, ok := w.GetTaskID(ctx)
     if !ok {
         return fmt.Errorf("no task ID in context")
     }

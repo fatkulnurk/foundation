@@ -191,7 +191,7 @@ func (w *AsynqWorker) Stop() {
 	logging.Info(context.Background(), "Worker stopped")
 }
 
-func (w *AsynqWorker) GetTaskIDFromContext(ctx context.Context) (string, bool) {
+func (w *AsynqWorker) GetTaskID(ctx context.Context) (string, bool) {
 	return asynq.GetTaskID(ctx)
 }
 

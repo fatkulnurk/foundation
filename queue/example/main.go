@@ -182,7 +182,7 @@ func runWorker(redisClient *redis.Client) {
 	w.RegisterWithMiddleware("email:send",
 		func(ctx context.Context, payload []byte) error {
 			// Get task ID from context using worker
-			taskID, ok := w.GetTaskIDFromContext(ctx)
+			taskID, ok := w.GetTaskID(ctx)
 			if ok {
 				fmt.Printf("📋 Processing task ID: %s\n", taskID)
 			}
@@ -204,7 +204,7 @@ func runWorker(redisClient *redis.Client) {
 	// Handler for notification:send
 	w.Register("notification:send", func(ctx context.Context, payload []byte) error {
 		// Get task ID from context
-		if taskID, ok := w.GetTaskIDFromContext(ctx); ok {
+		if taskID, ok := w.GetTaskID(ctx); ok {
 			fmt.Printf("📋 Task ID: %s\n", taskID)
 
 			// Get full task info from worker

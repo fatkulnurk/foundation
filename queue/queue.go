@@ -35,10 +35,10 @@ type Worker interface {
 	// Middleware will be executed in the order they are provided
 	RegisterWithMiddleware(taskType string, handler Handler, middleware ...MiddlewareFunc) error
 
-	// GetTaskIDFromContext retrieves the task ID from the context
+	// GetTaskID retrieves the task ID from the context
 	// This is useful inside handler functions to get the current task ID
 	// Returns the task ID and a boolean indicating if it was found
-	GetTaskIDFromContext(ctx context.Context) (string, bool)
+	GetTaskID(ctx context.Context) (string, bool)
 
 	// GetTaskInfo retrieves information about a task by its ID
 	// This allows workers to inspect task details during processing
