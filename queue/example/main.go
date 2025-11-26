@@ -206,6 +206,12 @@ func runWorker(redisClient *redis.Client) {
 		// Get task ID from context
 		if taskID, ok := w.GetTaskIDFromContext(ctx); ok {
 			fmt.Printf("📋 Task ID: %s\n", taskID)
+
+			// Get full task info from worker
+			if taskInfo, err := w.GetTaskInfo(ctx, taskID); err == nil {
+				fmt.Printf("   State: %s, Retry: %d/%d\n",
+					taskInfo.State, taskInfo.Retried, taskInfo.MaxRetry)
+			}
 		}
 
 		var notif NotificationPayload

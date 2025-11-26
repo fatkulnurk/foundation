@@ -108,6 +108,9 @@ type Worker interface {
     Start() error
     Stop()
     Register(taskType string, handler Handler) error
+    RegisterWithMiddleware(taskType string, handler Handler, middleware ...MiddlewareFunc) error
+    GetTaskIDFromContext(ctx context.Context) (string, bool)
+    GetTaskInfo(ctx context.Context, taskID string) (*TaskInfo, error)
 }
 ```
 
@@ -155,6 +158,38 @@ w.Register("email:send", func(ctx context.Context, payload []byte) error {
 - Provides clean API - all worker-related functions are in one interface
 - Allows different implementations for different queue backends
 - Maintains abstraction - external code doesn't need to know about asynq
+
+### GetTaskInfo (Worker)
+
+Workers can also retrieve task information using `GetTaskInfo`. This is useful for inspecting task details during processing.
+
+```go
+w := queue.NewWorker(cfg, redisClient)
+
+w.Register("email:send", func(ctx context.Context, payload []byte) error {
+    // Get task ID from context
+    taskID, ok := w.GetTaskIDFromContext(ctx)
+    if !ok {
+        return fmt.Errorf("no task ID in context")
+    }
+    
+    // Get full task info from worker
+    taskInfo, err := w.GetTaskInfo(ctx, taskID)
+    if err != nil {
+        log.Printf("Failed to get task info: %v", err)
+    } else {
+        log.Printf("Processing task %s - Retry %d/%d", 
+            taskInfo.ID, taskInfo.Retried, taskInfo.MaxRetry)
+    }
+    
+    // Process task...
+    return nil
+})
+```
+
+**Available in both Queue and Worker:**
+- `Queue.GetTaskInfo()` - For producers to check task status after enqueuing
+- `Worker.GetTaskInfo()` - For workers to inspect task details during processing
 
 ## Configuration
 

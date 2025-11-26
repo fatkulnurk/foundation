@@ -39,6 +39,10 @@ type Worker interface {
 	// This is useful inside handler functions to get the current task ID
 	// Returns the task ID and a boolean indicating if it was found
 	GetTaskIDFromContext(ctx context.Context) (string, bool)
+
+	// GetTaskInfo retrieves information about a task by its ID
+	// This allows workers to inspect task details during processing
+	GetTaskInfo(ctx context.Context, taskID string) (*TaskInfo, error)
 }
 
 // Handler is a function that processes a task

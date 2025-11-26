@@ -117,9 +117,10 @@ func convertAsynqTaskInfo(task *asynq.TaskInfo, state TaskState) *TaskInfo {
 
 // AsynqWorker implements Worker interface using asynq
 type AsynqWorker struct {
-	server   *asynq.Server
-	mux      *asynq.ServeMux
-	handlers map[string]Handler
+	server      *asynq.Server
+	mux         *asynq.ServeMux
+	handlers    map[string]Handler
+	redisClient *redis.Client
 }
 
 // NewWorker creates a new Worker instance using asynq
@@ -151,9 +152,10 @@ func NewWorker(cfg *Config, redis *redis.Client) Worker {
 	mux := asynq.NewServeMux()
 
 	return &AsynqWorker{
-		server:   server,
-		mux:      mux,
-		handlers: make(map[string]Handler),
+		server:      server,
+		mux:         mux,
+		handlers:    make(map[string]Handler),
+		redisClient: redis,
 	}
 }
 
@@ -191,6 +193,43 @@ func (w *AsynqWorker) Stop() {
 
 func (w *AsynqWorker) GetTaskIDFromContext(ctx context.Context) (string, bool) {
 	return asynq.GetTaskID(ctx)
+}
+
+func (w *AsynqWorker) GetTaskInfo(ctx context.Context, taskID string) (*TaskInfo, error) {
+	inspector := asynq.NewInspectorFromRedisClient(w.redisClient)
+
+	// Try to find task in different states
+	// First check active tasks
+	tasks, err := inspector.ListActiveTasks(taskID)
+	if err == nil && len(tasks) > 0 {
+		return convertAsynqTaskInfo(tasks[0], TaskStateActive), nil
+	}
+
+	// Check pending tasks
+	tasks, err = inspector.ListPendingTasks(taskID)
+	if err == nil && len(tasks) > 0 {
+		return convertAsynqTaskInfo(tasks[0], TaskStatePending), nil
+	}
+
+	// Check scheduled tasks
+	tasks, err = inspector.ListScheduledTasks(taskID)
+	if err == nil && len(tasks) > 0 {
+		return convertAsynqTaskInfo(tasks[0], TaskStateScheduled), nil
+	}
+
+	// Check retry tasks
+	tasks, err = inspector.ListRetryTasks(taskID)
+	if err == nil && len(tasks) > 0 {
+		return convertAsynqTaskInfo(tasks[0], TaskStateRetry), nil
+	}
+
+	// Check archived tasks
+	tasks, err = inspector.ListArchivedTasks(taskID)
+	if err == nil && len(tasks) > 0 {
+		return convertAsynqTaskInfo(tasks[0], TaskStateArchived), nil
+	}
+
+	return nil, fmt.Errorf("task not found: %s", taskID)
 }
 
 // toAsynqOptions converts our internal options to asynq options
