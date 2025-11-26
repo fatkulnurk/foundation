@@ -161,18 +161,22 @@ func runWorker(redisClient *redis.Client) {
 	// Register handlers
 	fmt.Println("Registering task handlers...")
 
-	// Handler for email:send
-	worker.Register("email:send", func(ctx context.Context, payload []byte) error {
-		var email EmailPayload
-		if err := json.Unmarshal(payload, &email); err != nil {
-			return fmt.Errorf("failed to unmarshal email payload: %w", err)
-		}
+	// Handler for email:send with middleware
+	worker.RegisterWithMiddleware("email:send",
+		func(ctx context.Context, payload []byte) error {
+			var email EmailPayload
+			if err := json.Unmarshal(payload, &email); err != nil {
+				return fmt.Errorf("failed to unmarshal email payload: %w", err)
+			}
 
-		fmt.Printf("📧 Sending email to %s: %s\n", email.To, email.Subject)
-		time.Sleep(1 * time.Second) // Simulate work
-		fmt.Printf("✓ Email sent successfully to %s\n\n", email.To)
-		return nil
-	})
+			fmt.Printf("📧 Sending email to %s: %s\n", email.To, email.Subject)
+			time.Sleep(1 * time.Second) // Simulate work
+			fmt.Printf("✓ Email sent successfully to %s\n\n", email.To)
+			return nil
+		},
+		queue.LoggingMiddleware("email:send"),
+		queue.RecoveryMiddleware("email:send"),
+	)
 
 	// Handler for notification:send
 	worker.Register("notification:send", func(ctx context.Context, payload []byte) error {

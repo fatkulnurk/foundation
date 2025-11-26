@@ -94,6 +94,14 @@ type Worker interface {
 type Handler func(ctx context.Context, payload []byte) error
 ```
 
+### Middleware Type
+
+```go
+type MiddlewareFunc func(Handler) Handler
+```
+
+Middleware allows you to wrap handlers with additional functionality like logging, metrics, recovery, etc.
+
 ## Configuration
 
 ```go
@@ -162,6 +170,60 @@ queue.Enqueue(ctx, "task", payload, queue.Retention(7*24*time.Hour))
 ### Group
 ```go
 queue.Enqueue(ctx, "task", payload, queue.Group("user-operations"))
+```
+
+## Built-in Middleware
+
+### LoggingMiddleware
+Logs task execution start, completion, and errors with duration.
+```go
+worker.RegisterWithMiddleware("task", handler, 
+    queue.LoggingMiddleware("task"),
+)
+```
+
+### RecoveryMiddleware
+Recovers from panics and converts them to errors.
+```go
+worker.RegisterWithMiddleware("task", handler,
+    queue.RecoveryMiddleware("task"),
+)
+```
+
+### RetryLoggingMiddleware
+Logs when a task will be retried.
+```go
+worker.RegisterWithMiddleware("task", handler,
+    queue.RetryLoggingMiddleware("task"),
+)
+```
+
+### TimeoutMiddleware
+Adds a timeout to task execution.
+```go
+worker.RegisterWithMiddleware("task", handler,
+    queue.TimeoutMiddleware(5*time.Minute),
+)
+```
+
+### MetricsMiddleware
+Tracks task metrics (placeholder for actual metrics implementation).
+```go
+worker.RegisterWithMiddleware("task", handler,
+    queue.MetricsMiddleware("task"),
+)
+```
+
+### ChainMiddleware
+Chains multiple middleware functions.
+```go
+worker.RegisterWithMiddleware("task", handler,
+    queue.ChainMiddleware(
+        queue.LoggingMiddleware("task"),
+        queue.RecoveryMiddleware("task"),
+        queue.MetricsMiddleware("task"),
+    ),
+)
 ```
 
 ## Examples
@@ -233,6 +295,22 @@ cfg := &queue.Config{
 }
 
 worker := queue.NewWorker(cfg, redisClient)
+```
+
+### Example 6: Handler with Middleware
+
+```go
+// Register handler with logging and recovery middleware
+worker.RegisterWithMiddleware("email:send",
+    func(ctx context.Context, payload []byte) error {
+        var email EmailPayload
+        json.Unmarshal(payload, &email)
+        return sendEmail(email)
+    },
+    queue.LoggingMiddleware("email:send"),
+    queue.RecoveryMiddleware("email:send"),
+    queue.TimeoutMiddleware(30*time.Second),
+)
 ```
 
 ## Running the Example

@@ -45,6 +45,10 @@ func (q *AsynqQueue) Enqueue(ctx context.Context, taskName string, payload any, 
 	return &OutputEnqueue{TaskID: tInfo.ID, Payload: data, Options: opts}, nil
 }
 
+func (q *AsynqQueue) Close() error {
+	return q.client.Close()
+}
+
 // AsynqWorker implements Worker interface using asynq
 type AsynqWorker struct {
 	server   *asynq.Server
@@ -88,12 +92,22 @@ func NewWorker(cfg *Config, redis *redis.Client) Worker {
 }
 
 func (w *AsynqWorker) Register(taskType string, handler Handler) error {
+	return w.RegisterWithMiddleware(taskType, handler)
+}
+
+func (w *AsynqWorker) RegisterWithMiddleware(taskType string, handler Handler, middleware ...MiddlewareFunc) error {
+	// Apply middleware in reverse order so they execute in the order provided
+	finalHandler := handler
+	for i := len(middleware) - 1; i >= 0; i-- {
+		finalHandler = middleware[i](finalHandler)
+	}
+
 	// Store handler for reference
-	w.handlers[taskType] = handler
+	w.handlers[taskType] = finalHandler
 
 	// Wrap our Handler to asynq.Handler
 	w.mux.HandleFunc(taskType, func(ctx context.Context, task *asynq.Task) error {
-		return handler(ctx, task.Payload())
+		return finalHandler(ctx, task.Payload())
 	})
 
 	return nil

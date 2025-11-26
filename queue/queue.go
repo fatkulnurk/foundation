@@ -7,25 +7,40 @@ import (
 
 // Queue defines the interface for queueing tasks
 type Queue interface {
+	// Enqueue adds a task to the queue
 	Enqueue(ctx context.Context, taskName string, payload any, opts ...Option) (*OutputEnqueue, error)
+
+	// Close closes the queue client connection
+	Close() error
 }
 
 // Worker defines the interface for processing tasks
 type Worker interface {
 	// Start starts the worker and begins processing tasks
+	// This is a blocking call that runs until Stop is called or an error occurs
 	Start() error
 
 	// Stop stops the worker gracefully
+	// It waits for all in-progress tasks to complete before shutting down
 	Stop()
 
 	// Register registers a handler for a specific task type
+	// The handler will be called when a task of this type is dequeued
 	Register(taskType string, handler Handler) error
+
+	// RegisterWithMiddleware registers a handler with middleware functions
+	// Middleware will be executed in the order they are provided
+	RegisterWithMiddleware(taskType string, handler Handler, middleware ...MiddlewareFunc) error
 }
 
 // Handler is a function that processes a task
 // It receives context and the task payload as []byte
 // It should return an error if the task processing fails
 type Handler func(ctx context.Context, payload []byte) error
+
+// MiddlewareFunc is a function that wraps a Handler
+// It can be used for logging, metrics, error handling, etc.
+type MiddlewareFunc func(Handler) Handler
 
 type OutputEnqueue struct {
 	TaskID  string
