@@ -5,14 +5,12 @@ A collection of reusable Go packages for building modern web applications. These
 
 | Package | Description |
 |---------|-------------|
-| [app](./app) | Application bootstrap and lifecycle management |
 | [cache](./cache) | Temporary data storage (Redis, in-memory) |
 | [container](./container) | Dependency injection container |
 | [httpclient](./httpclient) | HTTP client with retry and timeout |
 | [httprouter](./httprouter) | HTTP router with middleware |
 | [logging](./logging) | Structured logging |
 | [mailer](./mailer) | Email sending (SMTP, AWS SES) |
-| [module](./module) | Modular architecture support |
 | [queue](./queue) | Task queue with Redis |
 | [shared](./shared) | Shared utilities |
 | [storage](./storage) | File storage (Local, S3) |
@@ -57,5 +55,3 @@ q.Enqueue(ctx, "email:send", payload, queue.MaxRetry(3))
 Each package has detailed documentation in its README file. Click on the package name in the table above to view its documentation.
 
 ---
-
-**Built with Go**
