@@ -1,114 +1,216 @@
-# Mailer Package
+# Mailer - Email Sending Package for Go
 
-The `mailer` package provides a flexible and extensible email sending solution for Go applications. It supports multiple email delivery methods including SMTP and AWS SES (Simple Email Service).
-
-> **Note:**  This package is still under development and may undergo API changes.
+Module for sending emails with support for multiple providers (SMTP, AWS SES) and rich content features.
 
 ## Table of Contents
 
-- [Features](#features)
-- [Usage](#usage)
-- [Implementation Details](#implementation-details)
+- [What is Mailer?](#what-is-mailer)
+- [Module Contents](#module-contents)
+- [How to Use](#how-to-use)
+- [Configuration](#configuration)
+- [Real-World Example](#real-world-example)
+- [Best Practices](#best-practices)
+- [Common Patterns](#common-patterns)
+- [Installation](#installation)
+- [Dependencies](#dependencies)
 - [Extending](#extending)
+- [See Also](#see-also)
 
 ---
 
-## Features
+## What is Mailer?
 
-- Multiple email delivery providers:
-  - SMTP via [go-mail](https://github.com/wneessen/go-mail)
-  - AWS SES (Simple Email Service) via AWS SDK v2
-- Rich email content support:
-  - Plain text emails
-  - HTML emails
-  - Mixed content (both text and HTML)
-  - File attachments
-- Flexible recipient management:
-  - To, CC, and BCC recipients
-- Customizable sender information
-- Raw message building for advanced use cases
+Mailer is a flexible email sending package that provides a unified interface for sending emails through different providers. It abstracts away the complexity of different email services while providing rich features like HTML emails, attachments, and multiple recipients.
 
-## Usage
+**Think of it like:**
+- A universal adapter for different email services
+- A way to send emails without worrying about provider-specific APIs
+- A builder for complex email messages with attachments
 
-### Interface
+**Use cases:**
+- Sending transactional emails (welcome, password reset, etc.)
+- Sending marketing emails
+- Sending emails with attachments (invoices, reports, etc.)
+- Multi-provider email delivery with fallback
 
-The package defines a common interface `IMailer` that all email delivery implementations must satisfy:
+## Module Contents
+
+### 1. **mailer.go** - Core Interface
+Defines the main interface and data structures:
+- `Mailer` interface - Common interface for all email providers
+- `InputSendMail` - Input structure for sending emails
+- `OutputSendMail` - Output structure with message ID
+- `Sender`, `Destination`, `Attachment` - Supporting structures
+
+### 2. **smtp.go** - SMTP Implementation
+SMTP email delivery using [go-mail](https://github.com/wneessen/go-mail):
+- `NewSmtp` - Create SMTP client
+- `NewSMTPMailer` - Create SMTP mailer instance
+- Support for TLS, authentication, and attachments
+
+### 3. **ses.go** - AWS SES Implementation
+AWS SES email delivery using AWS SDK v2:
+- `NewSESClient` - Create SES client
+- `NewSESMailer` - Create SES mailer instance
+- Support for raw messages and attachments
+
+### 4. **builder.go** - Raw Message Builder
+Build raw MIME email messages:
+- `NewRawMessage` - Create message builder
+- Fluent API for building complex emails
+- Support for multipart messages and attachments
+
+### 5. **config.go** - Configuration
+Configuration helpers:
+- `LoadSMTPConfig` - Load SMTP config from environment
+- `LoadSESConfig` - Load SES config from environment
+
+## How to Use
+
+### Basic Usage with SMTP
 
 ```go
-type IMailer interface {
-	SendMail(ctx context.Context, msg InputSendMail) (*OutputSendMail, error)
+import "github.com/fatkulnurk/foundation/mailer"
+
+func main() {
+    // Create SMTP client
+    smtpClient, err := mailer.NewSmtp(&mailer.SMTPConfig{
+        Host:              "smtp.gmail.com",
+        Port:              587,
+        Username:          "user@example.com",
+        Password:          "password",
+        AuthType:          "PLAIN",
+        WithTLSPortPolicy: 0, // Mandatory TLS
+    })
+    if err != nil {
+        panic(err)
+    }
+
+    // Create mailer
+    m := mailer.NewSMTPMailer(smtpClient, "sender@example.com", "Sender Name")
+
+    // Send email
+    output, err := m.SendMail(context.Background(), mailer.InputSendMail{
+        Subject:     "Hello World",
+        TextMessage: "This is a plain text message",
+        Destination: mailer.Destination{
+            ToAddresses: []string{"recipient@example.com"},
+        },
+    })
 }
 ```
 
-### Creating an SMTP Mailer
-
-```go
-// Create SMTP client
-smtpClient, err := mailer.NewSmtp(&config.SMTP{
-    Host:             "smtp.example.com",
-    Port:             587,
-    Username:         "user@example.com",
-    Password:         "password",
-    AuthType:         1, // Use appropriate auth type
-    WithTLSPortPolicy: 2, // Use appropriate TLS policy
-})
-if err != nil {
-    // Handle error
-}
-
-// Create SMTP mailer with default sender
-smtpMailer := mailer.NewSMTPMailer(smtpClient, "sender@example.com", "Sender Name")
-```
-
-### Creating an AWS SES Mailer
+### Basic Usage with AWS SES
 
 ```go
 // Create SES client
-sesClient, err := mailer.NewSESClient(&config.SES{})
+sesClient, err := mailer.NewSESClient(&mailer.SESConfig{
+    Region: "us-west-2",
+})
 if err != nil {
-    // Handle error
+    panic(err)
 }
 
-// Create SES mailer with default sender
-sesMailer := mailer.NewSESMailer(sesClient, "sender@example.com", "Sender Name")
+// Create mailer
+m := mailer.NewSESMailer(sesClient, "sender@example.com", "Sender Name")
+
+// Send email
+output, err := m.SendMail(context.Background(), mailer.InputSendMail{
+    Subject:     "Hello World",
+    HtmlMessage: "<h1>Hello World</h1>",
+    Destination: mailer.Destination{
+        ToAddresses: []string{"recipient@example.com"},
+    },
+})
 ```
 
-### Sending an Email
+### Sending HTML Email
 
 ```go
-output, err := mailer.SendMail(context.Background(), mailer.InputSendMail{
-    Subject:     "Hello World",
-    TextMessage: "This is a plain text message",
-    HtmlMessage: "<h1>Hello World</h1><p>This is an HTML message</p>",
+output, err := m.SendMail(context.Background(), mailer.InputSendMail{
+    Subject:     "Welcome!",
+    HtmlMessage: "<h1>Welcome to our service!</h1><p>Thank you for signing up.</p>",
     Destination: mailer.Destination{
-        ToAddresses:  []string{"recipient@example.com"},
-        CcAddresses:  []string{"cc@example.com"},
-        BccAddresses: []string{"bcc@example.com"},
+        ToAddresses: []string{"user@example.com"},
+    },
+})
+```
+
+### Sending Email with Both Text and HTML
+
+```go
+output, err := m.SendMail(context.Background(), mailer.InputSendMail{
+    Subject:     "Newsletter",
+    TextMessage: "This is the plain text version",
+    HtmlMessage: "<h1>Newsletter</h1><p>This is the HTML version</p>",
+    Destination: mailer.Destination{
+        ToAddresses: []string{"user@example.com"},
+    },
+})
+```
+
+### Sending Email with Attachments
+
+```go
+// Read file
+fileBytes, err := os.ReadFile("invoice.pdf")
+if err != nil {
+    panic(err)
+}
+
+output, err := m.SendMail(context.Background(), mailer.InputSendMail{
+    Subject:     "Your Invoice",
+    HtmlMessage: "<h1>Invoice Attached</h1>",
+    Destination: mailer.Destination{
+        ToAddresses: []string{"customer@example.com"},
     },
     Attachments: []mailer.Attachment{
         {
             Content:  fileBytes,
-            Name:     "document.pdf",
+            Name:     "invoice.pdf",
             MimeType: "application/pdf",
         },
-    },
-    // Optional: override default sender
-    Sender: &mailer.Sender{
-        FromAddress: "custom@example.com",
-        FromName:    "Custom Sender",
     },
 })
 ```
 
-### Raw Message Building
+### Multiple Recipients (To, CC, BCC)
 
-For advanced use cases, you can build raw email messages:
+```go
+output, err := m.SendMail(context.Background(), mailer.InputSendMail{
+    Subject:     "Team Update",
+    HtmlMessage: "<h1>Important Update</h1>",
+    Destination: mailer.Destination{
+        ToAddresses:  []string{"user1@example.com", "user2@example.com"},
+        CcAddresses:  []string{"manager@example.com"},
+        BccAddresses: []string{"admin@example.com"},
+    },
+})
+```
+
+### Override Default Sender
+
+```go
+output, err := m.SendMail(context.Background(), mailer.InputSendMail{
+    Subject:     "Special Notification",
+    HtmlMessage: "<h1>From Support Team</h1>",
+    Destination: mailer.Destination{
+        ToAddresses: []string{"user@example.com"},
+    },
+    Sender: &mailer.Sender{
+        FromAddress: "support@example.com",
+        FromName:    "Support Team",
+    },
+})
+```
+
+### Using Raw Message Builder
 
 ```go
 rawMessage := mailer.NewRawMessage().
-    SetSubject("Hello World").
-    SetTextMessage("This is a plain text message").
-    SetHtmlMessage("<h1>Hello World</h1>").
+    SetSubject("Complex Email").
+    SetTextMessage("Plain text version").
+    SetHtmlMessage("<h1>HTML version</h1>").
     SetSender(mailer.Sender{
         FromAddress: "sender@example.com",
         FromName:    "Sender Name",
@@ -122,172 +224,541 @@ rawMessage := mailer.NewRawMessage().
             Name:     "document.pdf",
             MimeType: "application/pdf",
         },
-    })
+    }).
+    SetBoundary("CUSTOM-BOUNDARY")
 
 buffer, err := rawMessage.Build(context.Background())
+if err != nil {
+    panic(err)
+}
+
 // Use the raw message buffer
+fmt.Println(buffer.String())
 ```
 
-## Implementation Details
+## Configuration
 
-- `mailer.go`: Defines the core interfaces and data structures
-- `builder.go`: Provides functionality for building raw email messages
-- `smtp.go`: Implements email delivery via SMTP
-- `ses.go`: Implements email delivery via AWS SES
+### SMTP Configuration
+
+```go
+// Manual configuration
+smtpConfig := &mailer.SMTPConfig{
+    Host:              "smtp.gmail.com",
+    Port:              587,
+    Username:          "user@example.com",
+    Password:          "password",
+    AuthType:          "PLAIN",
+    WithTLSPortPolicy: 0, // 0 = Mandatory, 1 = Opportunistic, 2 = No TLS
+}
+
+// Load from environment variables
+smtpConfig := mailer.LoadSMTPConfig()
+// Reads: SMTP_HOST, SMTP_PORT, SMTP_USERNAME, SMTP_PASSWORD, 
+//        SMTP_AUTH_TYPE, SMTP_WITH_TLS_PORT_POLICY
+```
+
+### SES Configuration
+
+```go
+// Manual configuration
+sesConfig := &mailer.SESConfig{
+    Region: "us-west-2",
+}
+
+// Load from environment variables
+sesConfig := mailer.LoadSESConfig()
+// Reads: SES_REGION
+```
+
+### SMTP Auth Types
+
+Available authentication types:
+- `PLAIN` - Plain authentication
+- `LOGIN` - Login authentication
+- `CRAM-MD5` - CRAM-MD5 authentication
+- `XOAUTH2` - OAuth2 authentication
+- `SCRAM-SHA-1`, `SCRAM-SHA-256`, `SCRAM-SHA-512` - SCRAM authentication
+- `NOAUTH` - No authentication
+
+### TLS Policies
+
+- `0` - **Mandatory**: Always use TLS (recommended)
+- `1` - **Opportunistic**: Use TLS if available
+- `2` - **No TLS**: Don't use TLS (not recommended)
+
+## Real-World Example
+
+### Transactional Email Service
+
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    "log"
+    
+    "github.com/fatkulnurk/foundation/mailer"
+)
+
+type EmailService struct {
+    mailer mailer.Mailer
+}
+
+func NewEmailService() (*EmailService, error) {
+    // Load config from environment
+    smtpConfig := mailer.LoadSMTPConfig()
+    
+    // Create SMTP client
+    smtpClient, err := mailer.NewSmtp(smtpConfig)
+    if err != nil {
+        return nil, err
+    }
+    
+    // Create mailer
+    m := mailer.NewSMTPMailer(
+        smtpClient,
+        "noreply@example.com",
+        "Example App",
+    )
+    
+    return &EmailService{mailer: m}, nil
+}
+
+func (s *EmailService) SendWelcomeEmail(ctx context.Context, userEmail, userName string) error {
+    html := fmt.Sprintf(`
+        <h1>Welcome, %s!</h1>
+        <p>Thank you for signing up for our service.</p>
+        <p>Get started by visiting your dashboard.</p>
+    `, userName)
+    
+    _, err := s.mailer.SendMail(ctx, mailer.InputSendMail{
+        Subject:     "Welcome to Example App",
+        HtmlMessage: html,
+        Destination: mailer.Destination{
+            ToAddresses: []string{userEmail},
+        },
+    })
+    
+    return err
+}
+
+func (s *EmailService) SendPasswordResetEmail(ctx context.Context, userEmail, resetToken string) error {
+    html := fmt.Sprintf(`
+        <h1>Password Reset Request</h1>
+        <p>Click the link below to reset your password:</p>
+        <a href="https://example.com/reset?token=%s">Reset Password</a>
+        <p>This link will expire in 1 hour.</p>
+    `, resetToken)
+    
+    _, err := s.mailer.SendMail(ctx, mailer.InputSendMail{
+        Subject:     "Password Reset Request",
+        HtmlMessage: html,
+        Destination: mailer.Destination{
+            ToAddresses: []string{userEmail},
+        },
+    })
+    
+    return err
+}
+
+func (s *EmailService) SendInvoiceEmail(ctx context.Context, userEmail string, invoicePDF []byte) error {
+    _, err := s.mailer.SendMail(ctx, mailer.InputSendMail{
+        Subject:     "Your Invoice",
+        HtmlMessage: "<h1>Invoice Attached</h1><p>Please find your invoice attached.</p>",
+        Destination: mailer.Destination{
+            ToAddresses: []string{userEmail},
+        },
+        Attachments: []mailer.Attachment{
+            {
+                Content:  invoicePDF,
+                Name:     "invoice.pdf",
+                MimeType: "application/pdf",
+            },
+        },
+    })
+    
+    return err
+}
+
+func main() {
+    emailService, err := NewEmailService()
+    if err != nil {
+        log.Fatal(err)
+    }
+    
+    // Send welcome email
+    err = emailService.SendWelcomeEmail(
+        context.Background(),
+        "user@example.com",
+        "John Doe",
+    )
+    if err != nil {
+        log.Printf("Failed to send welcome email: %v", err)
+    }
+}
+```
+
+## Best Practices
+
+### 1. Use Environment Variables for Configuration
+
+```go
+// Good - load from environment
+smtpConfig := mailer.LoadSMTPConfig()
+
+// Avoid - hardcoded credentials
+smtpConfig := &mailer.SMTPConfig{
+    Username: "user@example.com",
+    Password: "hardcoded-password", // Don't do this!
+}
+```
+
+### 2. Always Provide Both Text and HTML Versions
+
+```go
+// Good - both versions
+output, err := m.SendMail(ctx, mailer.InputSendMail{
+    Subject:     "Newsletter",
+    TextMessage: "Plain text for email clients that don't support HTML",
+    HtmlMessage: "<h1>Rich HTML content</h1>",
+    Destination: mailer.Destination{
+        ToAddresses: []string{"user@example.com"},
+    },
+})
+```
+
+### 3. Handle Errors Gracefully
+
+```go
+output, err := m.SendMail(ctx, mailer.InputSendMail{
+    Subject:     "Important Email",
+    HtmlMessage: "<h1>Content</h1>",
+    Destination: mailer.Destination{
+        ToAddresses: []string{"user@example.com"},
+    },
+})
+if err != nil {
+    log.Printf("Failed to send email: %v", err)
+    // Implement retry logic or fallback
+    return err
+}
+
+log.Printf("Email sent successfully. Message ID: %s", *output.MessageID)
+```
+
+### 4. Use Proper MIME Types for Attachments
+
+```go
+// Good - correct MIME types
+attachments := []mailer.Attachment{
+    {Content: pdfBytes, Name: "doc.pdf", MimeType: "application/pdf"},
+    {Content: imageBytes, Name: "image.png", MimeType: "image/png"},
+    {Content: csvBytes, Name: "data.csv", MimeType: "text/csv"},
+}
+```
+
+## Common Patterns
+
+### Multi-Provider with Fallback
+
+```go
+type MultiProviderMailer struct {
+    primary   mailer.Mailer
+    fallback  mailer.Mailer
+}
+
+func NewMultiProviderMailer(primary, fallback mailer.Mailer) *MultiProviderMailer {
+    return &MultiProviderMailer{
+        primary:  primary,
+        fallback: fallback,
+    }
+}
+
+func (m *MultiProviderMailer) SendMail(ctx context.Context, msg mailer.InputSendMail) (*mailer.OutputSendMail, error) {
+    // Try primary provider
+    output, err := m.primary.SendMail(ctx, msg)
+    if err == nil {
+        return output, nil
+    }
+    
+    log.Printf("Primary mailer failed: %v, trying fallback", err)
+    
+    // Try fallback provider
+    return m.fallback.SendMail(ctx, msg)
+}
+```
+
+### Email Template System
+
+```go
+type EmailTemplate struct {
+    subject  string
+    htmlTmpl *template.Template
+    textTmpl *template.Template
+}
+
+func (t *EmailTemplate) Render(data interface{}) (string, string, error) {
+    var htmlBuf, textBuf bytes.Buffer
+    
+    if err := t.htmlTmpl.Execute(&htmlBuf, data); err != nil {
+        return "", "", err
+    }
+    
+    if err := t.textTmpl.Execute(&textBuf, data); err != nil {
+        return "", "", err
+    }
+    
+    return htmlBuf.String(), textBuf.String(), nil
+}
+
+func SendTemplatedEmail(ctx context.Context, m mailer.Mailer, tmpl *EmailTemplate, to string, data interface{}) error {
+    html, text, err := tmpl.Render(data)
+    if err != nil {
+        return err
+    }
+    
+    _, err = m.SendMail(ctx, mailer.InputSendMail{
+        Subject:     tmpl.subject,
+        HtmlMessage: html,
+        TextMessage: text,
+        Destination: mailer.Destination{
+            ToAddresses: []string{to},
+        },
+    })
+    
+    return err
+}
+```
+
+### Async Email Queue
+
+```go
+type EmailQueue struct {
+    mailer mailer.Mailer
+    queue  chan mailer.InputSendMail
+}
+
+func NewEmailQueue(m mailer.Mailer, workers int) *EmailQueue {
+    eq := &EmailQueue{
+        mailer: m,
+        queue:  make(chan mailer.InputSendMail, 100),
+    }
+    
+    // Start workers
+    for i := 0; i < workers; i++ {
+        go eq.worker()
+    }
+    
+    return eq
+}
+
+func (eq *EmailQueue) worker() {
+    for msg := range eq.queue {
+        _, err := eq.mailer.SendMail(context.Background(), msg)
+        if err != nil {
+            log.Printf("Failed to send email: %v", err)
+            // Implement retry logic
+        }
+    }
+}
+
+func (eq *EmailQueue) Enqueue(msg mailer.InputSendMail) {
+    eq.queue <- msg
+}
+```
+
+### Rate Limited Mailer
+
+```go
+type RateLimitedMailer struct {
+    mailer  mailer.Mailer
+    limiter *rate.Limiter
+}
+
+func NewRateLimitedMailer(m mailer.Mailer, rps int) *RateLimitedMailer {
+    return &RateLimitedMailer{
+        mailer:  m,
+        limiter: rate.NewLimiter(rate.Limit(rps), rps),
+    }
+}
+
+func (r *RateLimitedMailer) SendMail(ctx context.Context, msg mailer.InputSendMail) (*mailer.OutputSendMail, error) {
+    if err := r.limiter.Wait(ctx); err != nil {
+        return nil, err
+    }
+    
+    return r.mailer.SendMail(ctx, msg)
+}
+```
+
+## Installation
+
+```bash
+go get github.com/fatkulnurk/foundation/mailer
+```
+
+## Dependencies
+
+- **SMTP**: [github.com/wneessen/go-mail](https://github.com/wneessen/go-mail)
+- **AWS SES**: [github.com/aws/aws-sdk-go-v2](https://github.com/aws/aws-sdk-go-v2)
+- **Logging**: `github.com/fatkulnurk/foundation/logging`
+- **Support**: `github.com/fatkulnurk/foundation/support`
 
 ---
 
 ## Extending
 
-You can create custom mailer implementations by implementing the Mailer interface.
+You can extend the mailer by implementing custom providers or decorators.
 
-### Custom Mailer Implementation
-
-```go
-type Mailer interface {
-    Send(ctx context.Context, message Message) error
-}
-```
-
-### Example: SendGrid Mailer
+### Custom Provider Implementation
 
 ```go
 type SendGridMailer struct {
-    apiKey string
-    client *sendgrid.Client
+    apiKey      string
+    fromAddress string
+    fromName    string
 }
 
-func NewSendGridMailer(apiKey string) *SendGridMailer {
+func NewSendGridMailer(apiKey, fromAddress, fromName string) mailer.Mailer {
     return &SendGridMailer{
-        apiKey: apiKey,
-        client: sendgrid.NewSendClient(apiKey),
+        apiKey:      apiKey,
+        fromAddress: fromAddress,
+        fromName:    fromName,
     }
 }
 
-func (m *SendGridMailer) Send(ctx context.Context, message mailer.Message) error {
-    from := mail.NewEmail(message.FromName, message.FromAddress)
-    subject := message.Subject
-    to := mail.NewEmail("", message.ToAddresses[0])
+func (s *SendGridMailer) SendMail(ctx context.Context, msg mailer.InputSendMail) (*mailer.OutputSendMail, error) {
+    // Implement SendGrid API call
+    // ...
     
-    var content *mail.Content
-    if message.HTMLBody != "" {
-        content = mail.NewContent("text/html", message.HTMLBody)
-    } else {
-        content = mail.NewContent("text/plain", message.TextBody)
+    return &mailer.OutputSendMail{
+        MessageID: &messageID,
+    }, nil
+}
+```
+
+### Logging Decorator
+
+```go
+type LoggingMailer struct {
+    mailer mailer.Mailer
+    logger *log.Logger
+}
+
+func NewLoggingMailer(m mailer.Mailer, logger *log.Logger) mailer.Mailer {
+    return &LoggingMailer{
+        mailer: m,
+        logger: logger,
     }
+}
+
+func (l *LoggingMailer) SendMail(ctx context.Context, msg mailer.InputSendMail) (*mailer.OutputSendMail, error) {
+    l.logger.Printf("Sending email to: %v, subject: %s", msg.Destination.ToAddresses, msg.Subject)
     
-    msg := mail.NewV3MailInit(from, subject, to, content)
+    output, err := l.mailer.SendMail(ctx, msg)
     
-    response, err := m.client.Send(msg)
     if err != nil {
-        return err
+        l.logger.Printf("Failed to send email: %v", err)
+    } else {
+        l.logger.Printf("Email sent successfully. Message ID: %s", *output.MessageID)
     }
     
-    if response.StatusCode >= 400 {
-        return fmt.Errorf("sendgrid error: %d", response.StatusCode)
-    }
-    
-    return nil
+    return output, err
 }
 ```
 
-### Example: Mailgun Mailer
+### Retry Decorator
 
 ```go
-type MailgunMailer struct {
-    domain string
-    apiKey string
-    mg     *mailgun.MailgunImpl
+type RetryMailer struct {
+    mailer     mailer.Mailer
+    maxRetries int
+    delay      time.Duration
 }
 
-func NewMailgunMailer(domain, apiKey string) *MailgunMailer {
-    return &MailgunMailer{
-        domain: domain,
-        apiKey: apiKey,
-        mg:     mailgun.NewMailgun(domain, apiKey),
+func NewRetryMailer(m mailer.Mailer, maxRetries int, delay time.Duration) mailer.Mailer {
+    return &RetryMailer{
+        mailer:     m,
+        maxRetries: maxRetries,
+        delay:      delay,
     }
 }
 
-func (m *MailgunMailer) Send(ctx context.Context, message mailer.Message) error {
-    msg := m.mg.NewMessage(
-        fmt.Sprintf("%s <%s>", message.FromName, message.FromAddress),
-        message.Subject,
-        message.TextBody,
-        message.ToAddresses...,
-    )
-    
-    if message.HTMLBody != "" {
-        msg.SetHtml(message.HTMLBody)
-    }
-    
-    // Add CC
-    for _, cc := range message.CcAddresses {
-        msg.AddCC(cc)
-    }
-    
-    // Add BCC
-    for _, bcc := range message.BccAddresses {
-        msg.AddBCC(bcc)
-    }
-    
-    // Add attachments
-    for _, att := range message.Attachments {
-        msg.AddBufferAttachment(att.Name, att.Content)
-    }
-    
-    _, _, err := m.mg.Send(ctx, msg)
-    return err
-}
-```
-
-### Example: Queue-based Mailer
-
-```go
-type QueueMailer struct {
-    queue queue.Queue
-}
-
-func NewQueueMailer(q queue.Queue) *QueueMailer {
-    return &QueueMailer{queue: q}
-}
-
-func (m *QueueMailer) Send(ctx context.Context, message mailer.Message) error {
-    // Enqueue email for async processing
-    _, err := m.queue.Enqueue(ctx, "email:send", message,
-        queue.MaxRetry(3),
-        queue.Timeout(30*time.Second),
-    )
-    return err
-}
-```
-
-### Example: Multi-provider Mailer with Fallback
-
-```go
-type MultiMailer struct {
-    providers []mailer.Mailer
-}
-
-func NewMultiMailer(providers ...mailer.Mailer) *MultiMailer {
-    return &MultiMailer{providers: providers}
-}
-
-func (m *MultiMailer) Send(ctx context.Context, message mailer.Message) error {
+func (r *RetryMailer) SendMail(ctx context.Context, msg mailer.InputSendMail) (*mailer.OutputSendMail, error) {
     var lastErr error
     
-    for i, provider := range m.providers {
-        err := provider.Send(ctx, message)
+    for i := 0; i < r.maxRetries; i++ {
+        output, err := r.mailer.SendMail(ctx, msg)
         if err == nil {
-            log.Printf("Email sent successfully via provider %d", i)
-            return nil
+            return output, nil
         }
         
-        log.Printf("Provider %d failed: %v", i, err)
         lastErr = err
+        log.Printf("Attempt %d failed: %v", i+1, err)
+        
+        if i < r.maxRetries-1 {
+            time.Sleep(r.delay)
+        }
     }
     
-    return fmt.Errorf("all providers failed, last error: %w", lastErr)
+    return nil, fmt.Errorf("all %d attempts failed, last error: %w", r.maxRetries, lastErr)
+}
+```
+
+### Metrics Decorator
+
+```go
+type MetricsMailer struct {
+    mailer        mailer.Mailer
+    sentCount     int64
+    failedCount   int64
+    totalDuration time.Duration
+    mu            sync.Mutex
+}
+
+func NewMetricsMailer(m mailer.Mailer) *MetricsMailer {
+    return &MetricsMailer{
+        mailer: m,
+    }
+}
+
+func (m *MetricsMailer) SendMail(ctx context.Context, msg mailer.InputSendMail) (*mailer.OutputSendMail, error) {
+    start := time.Now()
+    output, err := m.mailer.SendMail(ctx, msg)
+    duration := time.Since(start)
+    
+    m.mu.Lock()
+    defer m.mu.Unlock()
+    
+    m.totalDuration += duration
+    if err != nil {
+        m.failedCount++
+    } else {
+        m.sentCount++
+    }
+    
+    return output, err
+}
+
+func (m *MetricsMailer) GetMetrics() (sent, failed int64, avgDuration time.Duration) {
+    m.mu.Lock()
+    defer m.mu.Unlock()
+    
+    total := m.sentCount + m.failedCount
+    if total > 0 {
+        avgDuration = m.totalDuration / time.Duration(total)
+    }
+    
+    return m.sentCount, m.failedCount, avgDuration
 }
 ```
 
 ---
+
+## See Also
+
+- `mailer.go` - Core interface and types
+- `smtp.go` - SMTP implementation
+- `ses.go` - AWS SES implementation
+- `builder.go` - Raw message builder
