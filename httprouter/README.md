@@ -53,11 +53,12 @@ Helper functions for sending responses:
 - `WriteError` - Send error response
 
 ### 3. **middleware/** - Built-in Middleware
-- `Logging` - Request logging
+- `SimpleLogging` - Request logging
 - `RecoverMiddleware` - Panic recovery
 - `CORS` - Cross-Origin Resource Sharing
 - `RateLimit` - Rate limiting
-- `RequireAPIKey` - API key authentication
+
+if you need more middleware, you can easily extend the module by adding your own middleware function Or use from other libraries/frameworks.
 
 ## How to Use
 

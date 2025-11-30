@@ -13,19 +13,23 @@ import (
 func main() {
 	r := httprouter.New()
 	// global middleware
-	r.Use(middleware.Logging)
+	r.Use(middleware.SimpleLogging)
 
 	// global recovery
 	r.Use(middleware.RecoverMiddleware)
 
 	// cors
 	r.Use(middleware.CORS(middleware.CORSOptions{
-		AllowedOrigins:   []string{"*"}, // atau []string{"https://app.zeedsharia.com"}
+		AllowedOrigins:   []string{"*"}, // atau []string{"https://fatkulnurk.com"}
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Content-Type", "Authorization"},
 		AllowCredentials: true,
 		MaxAge:           600,
 	}))
+
+	r.GET("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("Hello World"))
+	})
 
 	// /static
 	r.Static("/static", "./public/static")
@@ -36,7 +40,7 @@ func main() {
 		Window:   time.Minute,
 	}))
 
-	// route tanpa group
+	// route without group
 	r.GET("/ping", func(w http.ResponseWriter, r *http.Request) {
 		httprouter.WriteHTML(w, http.StatusOK, "pong")
 	})
@@ -50,6 +54,11 @@ func main() {
 
 		// middleware khusus group
 		api.Use(middleware.RequireAPIKey)
+
+		// GET /api (root of group)
+		api.GET("/", func(w http.ResponseWriter, r *http.Request) {
+			w.Write([]byte("API Root"))
+		})
 
 		// serve /api/assets/* (dengan middleware di atas)
 		api.Static("/assets", "./public/app-assets")
@@ -70,6 +79,11 @@ func main() {
 					}
 					next.ServeHTTP(w, r)
 				})
+			})
+
+			// GET /api/admin (root of nested group)
+			admin.GET("/", func(w http.ResponseWriter, r *http.Request) {
+				fmt.Fprintln(w, "Admin Root")
 			})
 
 			admin.GET("/stats", func(w http.ResponseWriter, r *http.Request) {

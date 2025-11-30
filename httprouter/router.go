@@ -74,7 +74,7 @@ func (r *Router) HandleFunc(pattern string, h http.HandlerFunc, mws ...func(http
 
 // Helper: method + path (Go 1.22+ pattern)
 func (r *Router) GET(path string, h http.HandlerFunc, mws ...func(http.Handler) http.Handler) {
-	r.Handle("GET "+clean(path), h, mws...)
+	r.Handle("GET "+cleanWithExactRoot(path), h, mws...)
 }
 
 func (r *Router) POST(path string, h http.HandlerFunc, mws ...func(http.Handler) http.Handler) {
@@ -172,7 +172,7 @@ func (g *Group) HandleFunc(pattern string, h http.HandlerFunc, mws ...func(http.
 }
 
 func (g *Group) GET(path string, h http.HandlerFunc, mws ...func(http.Handler) http.Handler) {
-	g.Handle("GET "+clean(path), h, mws...)
+	g.Handle("GET "+cleanWithExactRoot(path), h, mws...)
 }
 
 func (g *Group) POST(path string, h http.HandlerFunc, mws ...func(http.Handler) http.Handler) {
@@ -244,6 +244,22 @@ func clean(p string) string {
 	p = strings.TrimSpace(p)
 	if p == "" || p == "/" {
 		return "/"
+	}
+	if !strings.HasPrefix(p, "/") {
+		p = "/" + p
+	}
+	if len(p) > 1 && strings.HasSuffix(p, "/") {
+		p = strings.TrimSuffix(p, "/")
+	}
+	return p
+}
+
+// cleanWithExactRoot: sama seperti clean, tapi mengubah "/" menjadi "/{$}" untuk exact match
+// Ini menghindari konflik dengan wildcard patterns seperti "/static/{path...}"
+func cleanWithExactRoot(p string) string {
+	p = strings.TrimSpace(p)
+	if p == "" || p == "/" {
+		return "/{$}"
 	}
 	if !strings.HasPrefix(p, "/") {
 		p = "/" + p
