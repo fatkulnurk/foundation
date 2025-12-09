@@ -9,7 +9,7 @@ A collection of reusable Go packages for building modern web applications. These
 | [container](./container) | Dependency injection container |
 | [httpclient](./httpclient) | HTTP client with retry and timeout |
 | [httprouter](./httprouter) | HTTP router with middleware |
-| [logging](./logging) | Structured logging |
+| [logging](./logging) | Structured logging with log/slog, zap, and etc |
 | [mailer](./mailer) | Email sending (SMTP, AWS SES) |
 | [queue](./queue) | Task queue with Redis |
 | [shared](./shared) | Shared utilities |
