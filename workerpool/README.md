@@ -2,6 +2,9 @@
 
 A simple, efficient worker pool implementation for Go with priority queue, retry mechanism, timeout support, and dynamic scaling.
 
+> [!WARNING]
+> Do not use this in production
+
 ## Table of Contents
 
 - [What is Worker Pool?](#what-is-worker-pool)
